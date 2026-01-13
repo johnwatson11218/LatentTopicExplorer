@@ -1,0 +1,85 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nlp_postgres
+    environment:
+      POSTGRES_DB: second_brain
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: test_case  # Replace with actual password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./nlp_pipeline/sql/:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - nlp_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nlp_pipeline:
+    build: 
+      context: ./nlp_pipeline
+      dockerfile: Dockerfile
+    container_name: nlp_python
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: second_brain
+      DB_USER: postgres
+      DB_PASSWORD: test_case
+      REDIS_URL: redis://redis:6379
+
+    volumes:
+      #- ./src:/app/src
+      - ./data:/app/data
+
+    networks:
+      - nlp_network
+    stdin_open: true
+    tty: true
+
+
+  express-gui:
+    build:
+      context: ./express-app
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      REDIS_URL: redis://redis:6379
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: second_brain
+      DB_USER: postgres
+      DB_PASSWORD: test_case
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nlp_network
+    command: npm run dev
+
+  redis:
+      image: redis:alpine    
+      networks: 
+        - nlp_network  
+  
+  flask_app:
+    build: ./flask_app # path to the directory containing the Dockerfile
+    ports:
+      - "8000:5000"
+    networks:
+      - nlp_network
+
+volumes:
+  postgres_data:
+
+networks:
+  nlp_network:
+    driver: bridge  

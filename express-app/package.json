@@ -1,0 +1,21 @@
+{
+    "name": "docker-node-app",
+    "version": "1.0.0",
+    "description": "A simple Node.js app for Docker",
+    "main": "app.js",
+    "type": "module",
+    "scripts": {
+        "start": "node app.js",
+        "dev": "nodemon -L app.js"
+    },
+    "dependencies": {
+        "bullmq": "^5.66.2",
+        "ejs": "^3.1.10",
+        "express": "^4.18.2",
+        "ioredis": "^5.8.2",
+        "pg": "^8.16.3"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.11"
+    }
+}

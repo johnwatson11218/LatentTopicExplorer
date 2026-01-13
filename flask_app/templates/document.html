@@ -1,0 +1,19 @@
+<html>
+    <head><title>Single Document View</title></head>
+    <body>
+
+            <!--- doing a full refresh, slighly slower that just using the browser back button. :( -->
+            <h1><a href="/"><--</a></h1>
+        <div>
+            <h1>Document {{ id }} </h1>
+        </div>
+        <div>
+            <!-- [RealDictRow([('id', 1743), ('file_path', 'data/advancedpenetrationtesting.pdf'), ('preview', 'Advanced Penetration ...'), ('len', 473200), ('embedded', False)])] -->
+            <table>
+                <tr><td>{{ doc_data[0]['file_path'] }} </td></tr>
+                <tr><td>{{ doc_data[0]['len'] }} </td><td>{{ doc_data[0]['embedded'] }} </td></tr>
+                <tr><td>{{ doc_data[0]['preview'] }}</td></tr>
+            </table>
+        </div>
+    </body>
+</html>

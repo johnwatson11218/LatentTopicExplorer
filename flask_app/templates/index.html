@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Document Analysis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .count {
+            background-color: #e8f5e9;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .topic-label {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+    </style>
+
+
+
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+    <script lang="js">
+        document.addEventListener('DOMContentLoaded', function () {
+            // Use JSON.stringify to safely pass the object to the client-side script
+            const serverData = {{ x | safe}};
+
+            Plotly.newPlot('chartDiv', [{
+                x: serverData.x,
+                y: serverData.y,
+                mode: 'markers',
+                type: 'scatter',
+                text: serverData.labels,
+                marker: {
+                    size: serverData.sizes,
+                    opacity: 0.50,
+                    color: serverData.colors
+                }
+            }]);
+
+            var plotDiv = document.getElementById('chartDiv');
+        plotDiv.on('plotly_click', function (data) {
+
+            // data.points contains an array of points clicked (usually one)
+            if (data.points.length > 0) {
+                var clickedPoint = data.points[0];
+                if( ! clickedPoint ) return;
+                
+                var xValue = clickedPoint.x;
+                if( ! xValue ) return;
+                
+                var yValue = clickedPoint.y;
+                if( ! yValue ) return;
+
+                var pointIndex = clickedPoint.pointIndex; // Index of the point in the data array
+                
+                if( !  pointIndex  ) { alert( 'swing and a missl'); return ;}
+                //alert('Clicked point index: ' + pointIndex + '\\nx = ' + xValue + '\\ny = ' + yValue.toPrecision(4));
+
+                // You can also use this to change the point's color or update the graph
+                // Example: highlight the clicked point
+                var update = {
+                    'marker.color': new Array(data.points[0].fullData.marker.color.length).fill('blue'), // Reset all to default (e.g., blue)
+                };
+                update['marker.color'][pointIndex] = 'red'; // Highlight the clicked one
+                //Plotly.restyle('chartDiv', update, [clickedPoint.curveNumber]); // Apply the update
+                //alert( serverData.ids[pointIndex]);
+                window.location.href =  '/document/' + serverData.ids[pointIndex];
+            }
+        });
+
+
+        });
+
+        
+    </script>
+
+</head>
+
+<body>
+    <div class="container">
+
+        <h1>Document Analysis Dashboard</h1>
+
+        <div class="count">
+            Total Documents in Database: <strong>
+                {{ count }}
+            </strong>
+        </div>
+        <div id="chartDiv" style="width: 100%; height: 400px;"></div>
+        <h2>Topics and Associated Documents</h2>
+
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Topic Label</th>
+                    <th>Document Titles</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                {% for t in topic_data %}
+                <tr>
+                    <td>{{t.label}}</td>
+                    <td>{{t.document_titles | safe }}</td>
+                </tr>
+                {% endfor %}
+
+            </tbody>
+        </table>
+
+
+        <p style="margin-top: 30px; color: #6459ccff; font-style: italic;">
+            Data generated at: {{ date }}
+        </p>
+
+    </div>
+
+</body>
+
+</html>
