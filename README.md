@@ -1,7 +1,7 @@
 # LatentTopicExplorer
 Application to discover and explore topics in a pdf corpus. 
 
-
+***bug** I just did an end to end test and 1) the import stalled and failed for some pdf files, I removed them and restarted. 2) You have to issue the following sql "update documents set title = file_path;" at the very end in ordre to see the final chart -oops. 
 
 This is a docker compose based application stack that allows you to import a collection of pdf files, extract the text, perform cluster analysis, and automated topic discovery. 
 
