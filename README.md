@@ -5,7 +5,7 @@ Application to discover and explore topics in a pdf corpus.
 
 This is a docker compose based application stack that allows you to import a collection of pdf files, extract the text, perform cluster analysis, and automated topic discovery. 
 
-![Description of image](image.png)
+![Description of image](image2.png)
 
 If you clone the code, then do "docker compose up -d" from the root you should have two web applications running on localhost:3000 and localhost:8000. 
 The process is as follows. 
