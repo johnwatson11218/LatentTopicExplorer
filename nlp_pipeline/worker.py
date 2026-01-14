@@ -447,7 +447,7 @@ def terms():
         documents = cur.fetchall()
     print( f"There are {len(documents)} to process ")
     # Process in batches
-    batch_size = 10
+    batch_size = 2
     for i in range(0, len(documents), batch_size):
         batch = documents[i:i + batch_size]
         processor.process_documents_batch(batch)
