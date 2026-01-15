@@ -397,6 +397,13 @@ def topics():
         topics2documents[row['cluster']].append( row['doc_id'])
         
     cursor = conn.cursor()
+    # in order to make this setep idempotent, first delete from all these child tables
+    # in reverse order . 
+    # doc_coords, document_topics, topics. 
+    cursor.execute( "delete from doc_coords" )
+    cursor.execute( "delete from document_topics" )
+    cursor.execute( "delete from topics" )
+    
     for topic,documents in topics2documents.items():
         cursor.execute( "insert into topics ( title ) values ( 'default' )  returning id")
         new_topic_id = cursor.fetchone( )[0]
@@ -416,8 +423,6 @@ def topics():
         doc_id = row['doc_id'].item()
         x = row['umap_x'].item()
         y = row['umap_y'].item()
-        print( doc_id )
-        print( type( doc_id ))
         cursor.execute( "insert into doc_coords ( document_id, x , y ) values ( %s, %s, %s)",(  doc_id, x, y ) )
     conn.commit()
     cursor.close()
@@ -552,8 +557,8 @@ def process_pdfs():
                         clipped = clip_to_byte_limit(cleaned, MAX_BYTES - 1)
 
                         cur.execute(
-                            "INSERT INTO public.documents (file_path, raw_text) VALUES (%s, %s) RETURNING id;",
-                            (path, clipped)
+                            "INSERT INTO public.documents (file_path, raw_text, title ) VALUES (%s, %s, %s) RETURNING id;",
+                            (path, clipped, path)
                         )
                         new_id = cur.fetchone()[0]
                         conn.commit()
@@ -567,23 +572,23 @@ def process_pdfs():
         conn.close()
     except Exception as e:        
         print(f"Database connection error: {e}")
-    # go ahead and do the code inside of the title_documents.py
-    conn2 = psycopg2.connect(**DB_CONFIG)
-    cur2 = conn2.cursor()
-    cur2.execute( 'select d.id, d.file_path from documents d  where d.title is null ')
-    list = cur2.fetchall()
+    # # go ahead and do the code inside of the title_documents.py
+    # conn2 = psycopg2.connect(**DB_CONFIG)
+    # cur2 = conn2.cursor()
+    # cur2.execute( 'select d.id, d.file_path from documents d  where d.title is null ')
+    # list = cur2.fetchall()
 
-    my_mapped_data = {}
-    for row in list:
-        doc_id = row[0]
-        file_path = row[1]
-        title = f"{file_path.split('/')[-1]}_{doc_id}"
+    # my_mapped_data = {}
+    # for row in list:
+    #     doc_id = row[0]
+    #     file_path = row[1]
+    #     title = f"{file_path.split('/')[-1]}_{doc_id}"
         
-        cur2.execute( ' update documents set title = %s where id = %s ', ( title, doc_id ) )
-        print( f"Updated document ID {doc_id} with title: {title}" )
+    #     cur2.execute( ' update documents set title = %s where id = %s ', ( title, doc_id ) )
+    #     print( f"Updated document ID {doc_id} with title: {title}" )
 
-    conn2.commit()
-    cur2.close()
+    # conn2.commit()
+    # cur2.close()
 
 # --- MAIN WORKER LOOP ---
 if __name__ == "__main__":
