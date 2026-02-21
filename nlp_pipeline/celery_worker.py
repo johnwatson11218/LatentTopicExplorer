@@ -1,0 +1,3 @@
+import celery
+
+print( dir() )

@@ -1,0 +1,30 @@
+<html>
+    <head><title>Single Topic View</title></head>
+    <body>
+
+        <div>
+            <h1>Topic {{ id }} </h1>
+        </div>
+        <div>
+            <h1>{{ topic_data[0].label }}</h1>
+            <table>
+            {% for document in topic_data %}
+                <tr><td> <a href="/document/{{ document.doc_id  }}">{{ document.document_titles }}</a></td></tr>
+            {% endfor %}        
+            </table>
+
+        </div>
+        <!--
+
+        <tr><td>{{  topic_data[0].document_titles | safe }}</td></tr>       
+
+                    {% for document in topic_data[0].document_titles %}
+                       <tr><td>{{ document | safe }}</td></tr>
+                   {% endfor %}
+
+        
+        -->
+    </body>
+</html>
+
+
