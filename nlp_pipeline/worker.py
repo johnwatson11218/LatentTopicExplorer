@@ -351,11 +351,14 @@ def embed_pdfs():
         doc_embedding = np.mean(chunked_embeddings,axis=0)
         update_doc_embedding( doc_id, doc_embedding  )
 
+def pre_load_docs():
+     print( 'about to pre load the pdf files ')
+ 
 def process_pdfs():
     """The logic from your script integrated as a task"""
     print(f"Starting PDF scan in {DATA_FOLDER}...")
     
-    try:
+    try: 
         conn = psycopg2.connect(**DB_CONFIG)
         cur = conn.cursor()
 
@@ -432,8 +435,9 @@ if __name__ == "__main__":
             task_type = job.get("task")
             print(f"--- Received Task: {task_type} ---**********")
 
-            if task_type == "process_pdfs":
-                print( 'about to call it. ')
+            if task_type == 'preload_docs': 
+                pre_load_docs()
+            elif task_type == "process_pdfs":
                 process_pdfs()
             elif task_type == "embed_pdfs":
                 embed_pdfs()

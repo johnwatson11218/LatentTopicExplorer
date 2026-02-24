@@ -52,6 +52,14 @@ def topic_by_id( id ) :
 
 
 
+@app.route( "/preload_docs")
+def pre_load_docs():
+    app.logger.info( "A user clicked pre load docs." )
+    redis_client.rpush( 'python_tasks', json.dumps( { 'task' : 'preload_docs'}))
+    flash( 'Preloading docs.')
+    return redirect( url_for( 'hello_world'))
+
+
 @app.route("/load_docs")
 def load_docs():
     app.logger.info( "A user clicked load_docs.")
@@ -101,6 +109,7 @@ def stop_celery():
     redis_client.rpush( 'python_tasks', json.dumps( { 'task' : 'stop_celery'}))
     flash( "stop celery.")
     return redirect( url_for( 'hello_world'))
+
 
 
 @lru_cache(maxsize=128)

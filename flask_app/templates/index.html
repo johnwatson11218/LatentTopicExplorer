@@ -4,6 +4,9 @@
 <head>
     <title>Document Analysis</title>
 
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com" rel="stylesheet">
 
 
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/main.css') }}" />
@@ -71,7 +74,7 @@
 <body>
     <div class="container">
 
-        <h1>Document Analysis Dashboard</h1>
+        <h1  style="  font-family: 'Inter', sans-serif;">Document Analysis Dashboard</h1>
 
 
         {% with messages = get_flashed_messages() %}
@@ -87,6 +90,7 @@
         {% endwith %}
 
         <div id="controlPanel">
+            <form action="/preload_docs"> <input type="submit" value="Pre load docs" /> </form>
             <form action="/load_docs"> <input type="submit" value="Load Docs" /> </form>
             <form action="/embed_docs"> <input type="submit" value="Embed Docs" /> </form>
             <form action="/terms"> <input type="submit" value="Terms" /> </form>
