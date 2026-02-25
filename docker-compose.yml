@@ -19,6 +19,24 @@ services:
       timeout: 5s
       retries: 5
 
+  celery-embedder:
+    mem_limit: 10g
+    build: 
+      context: ./nlp_pipeline
+      dockerfile: Dockerfile   # same Dockerfile as your existing python worker
+    command: celery -A celery_worker worker --queues=embed_tasks --concurrency=4 --loglevel=info
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+      - postgres
+    # optional: restart if it crashes
+    restart: unless-stopped
+    networks:
+      - nlp_network
+    stdin_open: true
+    tty: true
+
   nlp_pipeline:
     mem_limit: 10g
     memswap_limit: 10g

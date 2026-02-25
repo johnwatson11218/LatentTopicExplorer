@@ -22,6 +22,9 @@ import pandas as pd
 import spacy
 import re
 
+from celery import group
+from celery_worker import embed_single_document
+
 # --- CONFIGURATION ---
 REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379')
 DB_CONFIG = {
@@ -318,38 +321,70 @@ def umap():
     return df, embedding_2d, cluster_labels
 
 def embed_pdfs():
-    print("Loading SentenceTransformer model...")
-    model = SentenceTransformer('all-MiniLM-L6-v2')
+
+    """
+    Dispatch one Celery task per unembedded document.
+    Celery handles the concurrency (run workers with --concurrency=4).
+    """
+    conn = psycopg2.connect(**DB_CONFIG)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, raw_text FROM documents WHERE embedding IS NULL")
+    documents = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    if not documents:
+        print("No documents to embed.")
+        return
+
+    print(f"Dispatching {len(documents)} embedding tasks to Celery...")
     
-    documents = get_documents()
-    print(f"Found {len(documents)} documents to process")
+    # Build a group so you can optionally wait/inspect results
+    job = group(
+        embed_single_document.s(doc_id, raw_text)
+        for doc_id, raw_text in documents
+        if raw_text  # skip empties
+    )
+    result = job.apply_async()
     
-    # Process each document
-    dox2embeddings = {}
-    for doc_id, raw_text in documents:
-        print(f"\nProcessing document {doc_id}...")
+    # Optional: block and wait for all to finish before marking step complete
+    # results = result.get(timeout=600)  # 10min overall timeout
+    # print(f"All done: {results}")
+    
+    print(f"All {len(documents)} tasks dispatched. Celery is processing...")
+   
+    # print("Loading SentenceTransformer model...")
+    # model = SentenceTransformer('all-MiniLM-L6-v2')
+    
+    # documents = get_documents()
+    # print(f"Found {len(documents)} documents to process")
+    
+    # # Process each document
+    # dox2embeddings = {}
+    # for doc_id, raw_text in documents:
+    #     print(f"\nProcessing document {doc_id}...")
         
-        # Skip if raw_text is None or empty
-        if not raw_text:
-            print(f"Skipping document {doc_id} - no text content")
-            continue
+    #     # Skip if raw_text is None or empty
+    #     if not raw_text:
+    #         print(f"Skipping document {doc_id} - no text content")
+    #         continue
         
-        # Chunk the text
-        chunks = chunk_text(raw_text, chunk_size=100, overlap=10)
-        print(f"Created {len(chunks)} chunks")
+    #     # Chunk the text
+    #     chunks = chunk_text(raw_text, chunk_size=100, overlap=10)
+    #     print(f"Created {len(chunks)} chunks")
         
-        embeddings  = model.encode( chunks )
-        dox2embeddings[doc_id] = embeddings
-        # Insert into database
-        insert_chunked_embeddings(doc_id, chunks, embeddings )
+    #     embeddings  = model.encode( chunks )
+    #     dox2embeddings[doc_id] = embeddings
+    #     # Insert into database
+    #     insert_chunked_embeddings(doc_id, chunks, embeddings )
     
 
 
-    print("\nAll documents processed successfully!")
-    #print( f"dox2embeddings --> {dox2embeddings}")
-    for doc_id , chunked_embeddings in dox2embeddings.items():
-        doc_embedding = np.mean(chunked_embeddings,axis=0)
-        update_doc_embedding( doc_id, doc_embedding  )
+    # print("\nAll documents processed successfully!")
+    # #print( f"dox2embeddings --> {dox2embeddings}")
+    # for doc_id , chunked_embeddings in dox2embeddings.items():
+    #     doc_embedding = np.mean(chunked_embeddings,axis=0)
+    #     update_doc_embedding( doc_id, doc_embedding  )
 
 def pre_load_docs():
      print( 'about to pre load the pdf files ')
