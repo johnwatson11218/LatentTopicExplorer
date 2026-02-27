@@ -320,8 +320,58 @@ def umap():
     
     return df, embedding_2d, cluster_labels
 
-def embed_pdfs():
 
+
+def process_pdfs():
+    from celery_doc_parser import read_and_parse_single_file
+    """The logic from your script integrated as a task"""
+    print(f"Starting PDF scan in {DATA_FOLDER}...")
+    
+    try: 
+        conn = psycopg2.connect(**DB_CONFIG)
+        cur = conn.cursor()
+
+        # 1. Load existing files to avoid duplicates
+        cur.execute('SELECT file_path FROM public.documents')
+        existing_files = {row[0] for row in cur.fetchall()}
+        print(f"Known files in DB: {len(existing_files)}")
+
+        # 2. Walk the directory
+        paths2process = []
+        for root, dirs, files in os.walk(DATA_FOLDER):
+            for filename in files:
+                if filename.endswith(".pdf") and not filename.startswith("."):
+                    path = os.path.join(root, filename)
+
+                    if path in existing_files:
+                        continue
+                    paths2process.append( path )                                        
+        cur.close()
+        conn.close()
+        
+
+        if not paths2process:
+            print( "no files to import" )
+            return
+        
+        #[ read_and_parse_single_file( p ) for p in  paths2process ]        
+        job = group( read_and_parse_single_file.s(p) for p in paths2process  )
+        
+        result = job.apply_async()    
+        
+        # Optional: block and wait for all to finish before marking step complete
+        # results = result.get(timeout=600)  # 10min overall timeout
+        # print(f"All done: {results}")
+    
+        print(f"All {len(paths2process)} documents parsed. Celery is processing...")
+        
+    except Exception as e:        
+        print(f"Database connection error: {e}")
+
+
+
+
+def embed_pdfs():
     """
     Dispatch one Celery task per unembedded document.
     Celery handles the concurrency (run workers with --concurrency=4).
@@ -340,13 +390,13 @@ def embed_pdfs():
     print(f"Dispatching {len(documents)} embedding tasks to Celery...")
     
     # Build a group so you can optionally wait/inspect results
+    # Build a group so you can optionally wait/inspect results
     job = group(
         embed_single_document.s(doc_id, raw_text)
         for doc_id, raw_text in documents
         if raw_text  # skip empties
     )
-    result = job.apply_async()
-    
+    result = job.apply_async()    
     # Optional: block and wait for all to finish before marking step complete
     # results = result.get(timeout=600)  # 10min overall timeout
     # print(f"All done: {results}")
@@ -389,63 +439,6 @@ def embed_pdfs():
 def pre_load_docs():
      print( 'about to pre load the pdf files ')
  
-def process_pdfs():
-    """The logic from your script integrated as a task"""
-    print(f"Starting PDF scan in {DATA_FOLDER}...")
-    
-    try: 
-        conn = psycopg2.connect(**DB_CONFIG)
-        cur = conn.cursor()
-
-        # 1. Load existing files to avoid duplicates
-        cur.execute('SELECT file_path FROM public.documents')
-        existing_files = {row[0] for row in cur.fetchall()}
-        print(f"Known files in DB: {len(existing_files)}")
-
-        # 2. Walk the directory
-        for root, dirs, files in os.walk(DATA_FOLDER):
-            for filename in files:
-                if filename.endswith(".pdf") and not filename.startswith("."):
-                    path = os.path.join(root, filename)
-
-                    if path in existing_files:
-                        continue
-
-                    print(f"Processing new file: {path}")
-                    raw_text = ""
-                    try:
-                        with pdfplumber.open(path) as pdf:
-                            for page in pdf.pages:
-                                page_text = page.extract_text()
-                                if page_text:
-                                    # Encode/Decode to strip non-ascii as per your original script
-                                    clean_page = page_text.encode('ascii', errors='ignore').decode('ascii')
-                                    raw_text += clean_page + "\n\n<<PAGE_BREAK>>\n\n"
-                        
-                        if not raw_text.strip():
-                            print(f"Skipping {filename}: No text found.")
-                            continue
-
-                        # 3. Clean and Save
-                        cleaned = clean_text_for_postgres(raw_text)
-                        clipped = clip_to_byte_limit(cleaned, MAX_BYTES - 1)
-
-                        cur.execute(
-                            "INSERT INTO public.documents (file_path, raw_text, title ) VALUES (%s, %s, %s) RETURNING id;",
-                            (path, clipped, path)
-                        )
-                        new_id = cur.fetchone()[0]
-                        conn.commit()
-                        print(f"Inserted ID: {new_id}")
-
-                    except Exception as e:
-                        print(f"Error processing {filename}: {e}")
-                        conn.rollback()
-
-        cur.close()
-        conn.close()
-    except Exception as e:        
-        print(f"Database connection error: {e}")
 
 
 

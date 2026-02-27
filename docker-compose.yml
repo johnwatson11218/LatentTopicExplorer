@@ -37,6 +37,26 @@ services:
     stdin_open: true
     tty: true
 
+  celery-doc-parser:
+    mem_limit: 10g
+    build: 
+      context: ./nlp_pipeline
+      dockerfile: Dockerfile   # same Dockerfile as your existing python worker
+    command: celery -A celery_doc_parser worker --queues=parse_docs --concurrency=4 --loglevel=info
+    environment:
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - redis
+      - postgres
+    # optional: restart if it crashes
+    restart: unless-stopped
+    networks:
+      - nlp_network
+    stdin_open: true
+    tty: true
+
   nlp_pipeline:
     mem_limit: 10g
     memswap_limit: 10g
