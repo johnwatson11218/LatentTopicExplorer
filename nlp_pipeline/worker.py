@@ -348,13 +348,11 @@ def process_pdfs():
                     paths2process.append( path )                                        
         cur.close()
         conn.close()
-        
 
         if not paths2process:
             print( "no files to import" )
             return
-        
-        #[ read_and_parse_single_file( p ) for p in  paths2process ]        
+
         job = group( read_and_parse_single_file.s(p) for p in paths2process  )
         
         result = job.apply_async()    
@@ -390,7 +388,6 @@ def embed_pdfs():
     print(f"Dispatching {len(documents)} embedding tasks to Celery...")
     
     # Build a group so you can optionally wait/inspect results
-    # Build a group so you can optionally wait/inspect results
     job = group(
         embed_single_document.s(doc_id, raw_text)
         for doc_id, raw_text in documents
@@ -403,51 +400,7 @@ def embed_pdfs():
     
     print(f"All {len(documents)} tasks dispatched. Celery is processing...")
    
-    # print("Loading SentenceTransformer model...")
-    # model = SentenceTransformer('all-MiniLM-L6-v2')
-    
-    # documents = get_documents()
-    # print(f"Found {len(documents)} documents to process")
-    
-    # # Process each document
-    # dox2embeddings = {}
-    # for doc_id, raw_text in documents:
-    #     print(f"\nProcessing document {doc_id}...")
-        
-    #     # Skip if raw_text is None or empty
-    #     if not raw_text:
-    #         print(f"Skipping document {doc_id} - no text content")
-    #         continue
-        
-    #     # Chunk the text
-    #     chunks = chunk_text(raw_text, chunk_size=100, overlap=10)
-    #     print(f"Created {len(chunks)} chunks")
-        
-    #     embeddings  = model.encode( chunks )
-    #     dox2embeddings[doc_id] = embeddings
-    #     # Insert into database
-    #     insert_chunked_embeddings(doc_id, chunks, embeddings )
-    
 
-
-    # print("\nAll documents processed successfully!")
-    # #print( f"dox2embeddings --> {dox2embeddings}")
-    # for doc_id , chunked_embeddings in dox2embeddings.items():
-    #     doc_embedding = np.mean(chunked_embeddings,axis=0)
-    #     update_doc_embedding( doc_id, doc_embedding  )
-
-def pre_load_docs():
-     print( 'about to pre load the pdf files ')
- 
-
-
-
-def start_celery():
-    print( 'starting celery')
-    
-def stop_celery():
-    print( 'ending celery' )
-    
     
 # --- MAIN WORKER LOOP ---
 if __name__ == "__main__":
@@ -463,9 +416,7 @@ if __name__ == "__main__":
             task_type = job.get("task")
             print(f"--- Received Task: {task_type} ---**********")
 
-            if task_type == 'preload_docs': 
-                pre_load_docs()
-            elif task_type == "process_pdfs":
+            if task_type == "process_pdfs":
                 process_pdfs()
             elif task_type == "embed_pdfs":
                 embed_pdfs()
@@ -475,10 +426,6 @@ if __name__ == "__main__":
                 terms()
             elif task_type == "tf_idf":
                 tf_idf()                
-            elif task_type == "start_celery":
-                start_celery()
-            elif task_type == "stop_celery":
-                stop_celery()
             else:
                 print(f"Unknown task type: {task_type}")
 

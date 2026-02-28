@@ -50,16 +50,6 @@ def topic_by_id( id ) :
     topic_data = get_topics_and_associated_documents( id )
     return render_template( 'topic.html', id=id, topic_data=topic_data )
 
-
-
-@app.route( "/preload_docs")
-def pre_load_docs():
-    app.logger.info( "A user clicked pre load docs." )
-    redis_client.rpush( 'python_tasks', json.dumps( { 'task' : 'preload_docs'}))
-    flash( 'Preloading docs.')
-    return redirect( url_for( 'hello_world'))
-
-
 @app.route("/load_docs")
 def load_docs():
     app.logger.info( "A user clicked load_docs.")
@@ -96,20 +86,14 @@ def tf_idf():
     flash("tf_idf.")
     return redirect(url_for('hello_world'))
 
-@app.route("/start_celery")
-def start_celery():
-    app.logger.info( "A user clicked /start_celery")
-    redis_client.rpush( 'python_tasks', json.dumps( { 'task' : 'start_celery'}))
-    flash( "start celery.")
+@app.route("/clear_cache")
+def clear_cache():
+    app.logger.info("A user clicked /clear_cache")
+    global DATA_VERSION
+    DATA_VERSION = DATA_VERSION + 1 
+    flash( f"Clear cache version at {DATA_VERSION}")
     return redirect( url_for( 'hello_world'))
-
-@app.route("/stop_celery")
-def stop_celery():
-    app.logger.info( "A user clicked /stop_celery")
-    redis_client.rpush( 'python_tasks', json.dumps( { 'task' : 'stop_celery'}))
-    flash( "stop celery.")
-    return redirect( url_for( 'hello_world'))
-
+  
 
 
 @lru_cache(maxsize=128)
