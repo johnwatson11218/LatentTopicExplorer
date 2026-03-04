@@ -74,6 +74,8 @@ services:
       DB_USER: postgres
       DB_PASSWORD: test_case
       REDIS_URL: redis://redis:6379
+      NVIDIA_VISIBLE_DEVICES : all
+      NVIDIA_DRIVER_CAPABILITIES : compute,utility
 
     volumes:
       - ./data:/app/data
@@ -82,6 +84,8 @@ services:
       - nlp_network
     stdin_open: true
     tty: true
+    runtime : nvidia
+    
 
   redis:
       image: redis:alpine    
