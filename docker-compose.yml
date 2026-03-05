@@ -27,6 +27,9 @@ services:
     command: celery -A celery_worker worker --queues=embed_tasks --concurrency=4 --loglevel=info
     environment:
       - REDIS_URL=redis://redis:6379
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
     depends_on:
       - redis
       - postgres
@@ -36,6 +39,7 @@ services:
       - nlp_network
     stdin_open: true
     tty: true
+    runtime : nvidia
 
   celery-doc-parser:
     mem_limit: 10g

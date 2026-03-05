@@ -31,7 +31,16 @@ def get_model():
     global _model
     if _model is None:
         logger.info("Loading SentenceTransformer model...")
-        _model = SentenceTransformer('all-MiniLM-L6-v2')
+        #_model = SentenceTransformer('all-MiniLM-L6-v2')
+        
+        
+        import torch
+        # Check for CUDA availability and set device
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        print(f"Using device: {device}")
+
+        # Load model directly onto the specified device
+        _model = SentenceTransformer('all-MiniLM-L6-v2', device=device)
     return _model
 
 
@@ -85,6 +94,7 @@ def embed_single_document(self, document_id: int, raw_text: str):
     
     model = get_model()
     chunks = chunk_text(raw_text, chunk_size=100, overlap=10)
+    [ c.]
     embeddings = model.encode(chunks)  # np array shape (n_chunks, dim)
     doc_embedding = np.mean(embeddings, axis=0)
 
