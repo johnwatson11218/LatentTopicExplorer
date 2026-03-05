@@ -94,7 +94,7 @@ def embed_single_document(self, document_id: int, raw_text: str):
     
     model = get_model()
     chunks = chunk_text(raw_text, chunk_size=100, overlap=10)
-    [ c.]
+    
     embeddings = model.encode(chunks)  # np array shape (n_chunks, dim)
     doc_embedding = np.mean(embeddings, axis=0)
 
