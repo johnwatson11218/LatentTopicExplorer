@@ -46,7 +46,7 @@ services:
     build: 
       context: ./nlp_pipeline
       dockerfile: Dockerfile   # same Dockerfile as your existing python worker
-    command: celery -A celery_doc_parser worker --queues=parse_docs --concurrency=4 --loglevel=info
+    command: celery -A celery_doc_parser worker --queues=parse_docs --concurrency=2 --loglevel=info
     environment:
       - REDIS_URL=redis://redis:6379
     volumes:

@@ -84,8 +84,8 @@ def update_doc_embedding(conn, document_id, embedding):
     name='embed_single_document',
     queue='embed_tasks',
     max_retries=3,
-    soft_time_limit=12000,   # raises SoftTimeLimitExceeded after 2min (nice-to-have)
-    time_limit=15000,         # hard kill after 2.5min
+    soft_time_limit=1200,   # raises SoftTimeLimitExceeded after 2min (nice-to-have)
+    time_limit=1500,         # hard kill after 2.5min
     autoretry_for=(Exception,),
     retry_backoff=True,
 )
