@@ -6,7 +6,7 @@ import redis
 import psycopg2
 import pdfplumber
 from psycopg2.extras import execute_values
-from sentence_transformers import SentenceTransformer
+#from sentence_transformers import SentenceTransformer
 import numpy as np
 from typing import List, Tuple, Dict, Set
 from collections import defaultdict, Counter
@@ -14,12 +14,12 @@ from collections import defaultdict, Counter
 from umap import UMAP
 
 from sklearn.cluster import HDBSCAN
-import matplotlib.pyplot as plt
-import seaborn as sns
+#import matplotlib.pyplot as plt
+#import seaborn as sns
 import pandas as pd
 
 
-import spacy
+#import spacy
 import re
 
 from celery import group

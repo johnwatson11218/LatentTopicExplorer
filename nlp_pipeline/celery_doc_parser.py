@@ -2,7 +2,7 @@ import os
 import numpy as np
 import psycopg2
 from celery import Celery
-from sentence_transformers import SentenceTransformer
+#from sentence_transformers import SentenceTransformer
 from celery.utils.log import get_task_logger
 import pdfplumber
 import re

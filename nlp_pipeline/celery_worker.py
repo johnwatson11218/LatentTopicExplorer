@@ -2,7 +2,7 @@ import os
 import numpy as np
 import psycopg2
 from celery import Celery
-from sentence_transformers import SentenceTransformer
+#from sentence_transformers import SentenceTransformer
 from celery.utils.log import get_task_logger
 
 logger = get_task_logger(__name__)
@@ -28,6 +28,7 @@ app.conf.accept_content = ['json']
 _model = None
 
 def get_model():
+    from sentence_transformers import SentenceTransformer
     global _model
     if _model is None:
         logger.info("Loading SentenceTransformer model...")

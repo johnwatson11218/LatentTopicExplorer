@@ -11,10 +11,10 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy requirements file and install Python dependencies
-COPY requirements.txt . 
+COPY requirements.pipeline.txt . 
 #RUN pip install --no-cache-dir "numpy<2" && \
 #    pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.pipeline.txt
 
 # # Pre-download the model (this is smart!)
 #RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-mpnet-base-v2')"
@@ -25,7 +25,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY ./ ./
 
 # Create data directories
-RUN mkdir -p /app/data/pdfs /app/data/output
+#RUN mkdir -p /app/data/pdfs /app/data/output
 
 # Unbuffered Python output
 ENV PYTHONUNBUFFERED=1
