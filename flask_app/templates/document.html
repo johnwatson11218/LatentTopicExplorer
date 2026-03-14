@@ -1,19 +1,62 @@
 <html>
-    <head><title>Single Document View</title></head>
-    <body>
 
-            <!--- doing a full refresh, slighly slower that just using the browser back button. :( -->
-            <h1><a href="/"><--</a></h1>
-        <div>
-            <h1>Document {{ id }} </h1>
+<head>
+    <title>Single Document View</title>
+</head>
+<style>
+    .layout {
+        display: grid;
+        grid-template-columns: 1fr 200px;
+        /* wide main + narrow sidebar */
+        gap: 3rem;
+    }
+
+    p {
+        text-indent: 1.5em;
+        margin: 0;
+        line-height: 1.7;
+    }
+
+    p:first-child {
+        text-indent: 0;
+    }
+
+    /* no indent on first para */
+
+    .sidebar {
+        border-top: 2px solid black;
+    }
+
+    .sidebar-label {
+        font-size: 0.7rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+    }
+</style>
+
+<body>
+
+    <div>
+        <h1>database primary key {{ id }} </h1>
+    </div>
+    <div>
+        <!-- [RealDictRow([('id', 1743), ('file_path', 'data/advancedpenetrationtesting.pdf'), ('preview', 'Advanced Penetration ...'), ('len', 473200), ('embedded', False)])] -->
+
+        <h1 style="font-family: 'Inter', sans-serif; font-weight: 900;"> {{ doc_data[0]['file_path'] }}
+        </h1>
+
+        
+        <div class='layout'>
+            <div class="body"><p> {{ doc_data[0]['preview'] }} </p></div>
+            <aside class="sidebar">
+                <ul>
+                    <li>Number of characters (db)  {{ doc_data[0]['len'] }} </li>
+                    <li>Document embedded?  {{ doc_data[0]['embedded'] }}   </li>
+                </ul>
+            </aside>
         </div>
-        <div>
-            <!-- [RealDictRow([('id', 1743), ('file_path', 'data/advancedpenetrationtesting.pdf'), ('preview', 'Advanced Penetration ...'), ('len', 473200), ('embedded', False)])] -->
-            <table>
-                <tr><td>{{ doc_data[0]['file_path'] }} </td></tr>
-                <tr><td>{{ doc_data[0]['len'] }} </td><td>{{ doc_data[0]['embedded'] }} </td></tr>
-                <tr><td>{{ doc_data[0]['preview'] }}</td></tr>
-            </table>
-        </div>
-    </body>
+
+    </div>
+</body>
+
 </html>
