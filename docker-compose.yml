@@ -7,8 +7,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: test_case  # Replace with actual password
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./nlp_pipeline/sql/:/docker-entrypoint-initdb.d
+      - postgres_data:/var/lib/postgresql/data # where the persistent data is stored
+      - ./nlp_pipeline/sql/:/docker-entrypoint-initdb.d # the init script that is run only once, reset w/ docker down -v
     ports:
       - "5432:5432"
     networks:
@@ -23,7 +23,7 @@ services:
     mem_limit: 10g
     build: 
       context: ./nlp_pipeline
-      dockerfile: Dockerfile.embedder   # same Dockerfile as your existing python worker
+      dockerfile: Dockerfile.embedder   # copy, paste, rename of original Docker file
     command: celery -A celery_worker worker --queues=embed_tasks --concurrency=4 --loglevel=info
     environment:
       - REDIS_URL=redis://redis:6379
@@ -39,13 +39,13 @@ services:
       - nlp_network
     stdin_open: true
     tty: true
-    runtime : nvidia
+    runtime : nvidia # comment out this line for systems w/o gpu + drivers/software to access via docker
 
   celery-doc-parser:
     mem_limit: 10g
     build: 
       context: ./nlp_pipeline
-      dockerfile: Dockerfile   # same Dockerfile as your existing python worker
+      dockerfile: Dockerfile   # original docker file, pared down for just this task
     command: celery -A celery_doc_parser worker --queues=parse_docs --concurrency=2 --loglevel=info
     environment:
       - REDIS_URL=redis://redis:6379
@@ -61,6 +61,8 @@ services:
     stdin_open: true
     tty: true
 
+  # The original nlp python worker file. This has the main loop that listens for messages from the flask ui
+  # and dispatches to celery or calls a blocking stored procedure ( both of which are pretty fast )
   nlp_pipeline:
     mem_limit: 10g
     memswap_limit: 10g
