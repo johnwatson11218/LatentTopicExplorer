@@ -9,6 +9,7 @@
         grid-template-columns: 1fr 200px;
         /* wide main + narrow sidebar */
         gap: 3rem;
+        margin : 100px;
     }
 
     p {
@@ -21,8 +22,6 @@
         text-indent: 0;
     }
 
-    /* no indent on first para */
-
     .sidebar {
         border-top: 2px solid black;
     }
@@ -31,6 +30,15 @@
         font-size: 0.7rem;
         letter-spacing: 0.12em;
         text-transform: uppercase;
+    }
+
+    h1 {
+        font-family : 'Inter', sans-serif;
+        font-weight: 900;
+        margin : 20px;
+        /*border : 1px  solid grey; */
+        
+        
     }
 </style>
 
@@ -42,12 +50,15 @@
     <div>
         <!-- [RealDictRow([('id', 1743), ('file_path', 'data/advancedpenetrationtesting.pdf'), ('preview', 'Advanced Penetration ...'), ('len', 473200), ('embedded', False)])] -->
 
-        <h1 style="font-family: 'Inter', sans-serif; font-weight: 900;"> {{ doc_data[0]['file_path'] }}
-        </h1>
+        <h1> {{ doc_data[0]['file_path'] }} </h1>
 
         
         <div class='layout'>
-            <div class="body"><p> {{ doc_data[0]['preview'] }} </p></div>
+            <div class="body">
+                <p> 
+                    {{ doc_data[0]['preview'] }} 
+                </p>
+            </div>
             <aside class="sidebar">
                 <ul>
                     <li>Number of characters (db)  {{ doc_data[0]['len'] }} </li>
