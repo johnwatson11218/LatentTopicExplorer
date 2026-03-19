@@ -39,7 +39,7 @@ services:
       - nlp_network
     stdin_open: true
     tty: true
-    runtime : nvidia # comment out this line for systems w/o gpu + drivers/software to access via docker
+    #runtime : nvidia # comment out this line for systems w/o gpu + drivers/software to access via docker
 
   celery-doc-parser:
     mem_limit: 10g
