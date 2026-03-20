@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict CsnxC0aizxfhwuZI0xGoGGmrELK2DHOfIua51YG9kLZhCkadsA5td5ChxwgYqj0
+\restrict QZrzAnG1Eak64tEbfYBj3O0ghGon20uEIDHYq49eyrI9o8MJ0n4gWQeoSkPdmJb
 
 -- Dumped from database version 16.13
 -- Dumped by pg_dump version 16.13
@@ -17,6 +17,68 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+--
+-- Name: process_document_terms_incremental(integer); Type: PROCEDURE; Schema: public; Owner: postgres
+--
+
+CREATE PROCEDURE public.process_document_terms_incremental(IN p_doc_id integer)
+    LANGUAGE plpgsql
+    AS $$ 
+BEGIN
+    -- 1. Clean up existing data for ONLY this document to allow re-processing
+    DELETE FROM public.document_terms WHERE document_id = p_doc_id;
+    DELETE FROM public.db_document_terms WHERE document_id = p_doc_id;
+    DELETE FROM public.chunked_embedding_terms WHERE document_id = p_doc_id;
+
+    -- 2. Create normalized chunk terms for this specific document
+    INSERT INTO public.chunked_embedding_terms (id, document_id, cleaned_word)
+    SELECT 
+        ce.id,
+        ce.document_id,
+        LOWER(REGEXP_REPLACE(word, '[^a-zA-Z0-9]', '', 'g')) AS cleaned_word
+    FROM public.chunked_embeddings ce
+    CROSS JOIN LATERAL REGEXP_SPLIT_TO_TABLE(ce.input_text, '\s+') AS word
+    WHERE ce.document_id = p_doc_id
+      AND LENGTH(REGEXP_REPLACE(word, '[^a-zA-Z0-9]', '', 'g')) > 2;
+
+    -- 3. Calculate frequencies for this document
+    INSERT INTO public.db_document_terms (document_id, term_text, simple_freq)
+    SELECT 
+        p_doc_id,
+        cet.cleaned_word,
+        COUNT(*)
+    FROM public.chunked_embedding_terms cet
+    WHERE cet.document_id = p_doc_id
+    GROUP BY cet.cleaned_word
+    HAVING COUNT(*) > 1;
+
+    -- 4. Insert new unique terms into the global terms dictionary
+    -- Use ON CONFLICT to ignore terms that already exist from other documents
+    INSERT INTO public.terms (term_text)
+    SELECT DISTINCT term_text 
+    FROM public.db_document_terms 
+    WHERE document_id = p_doc_id
+    ON CONFLICT (term_text) DO NOTHING;
+
+    -- 5. Map frequencies to the term IDs for this document
+    INSERT INTO public.document_terms (document_id, term_id, frequency)
+    SELECT 
+        ddt.document_id, 
+        t.id, 
+        ddt.simple_freq 
+    FROM public.terms t
+    JOIN public.db_document_terms ddt ON ddt.term_text = t.term_text
+    WHERE ddt.document_id = p_doc_id;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE EXCEPTION 'Error in incremental term parsing for doc %: %', p_doc_id, SQLERRM;
+END;
+$$;
+
+
+ALTER PROCEDURE public.process_document_terms_incremental(IN p_doc_id integer) OWNER TO postgres;
 
 --
 -- Name: refresh_topic_tables(); Type: PROCEDURE; Schema: public; Owner: postgres
@@ -114,49 +176,22 @@ ALTER PROCEDURE public.refresh_topic_tables() OWNER TO postgres;
 CREATE PROCEDURE public.simple_terms_parser()
     LANGUAGE plpgsql
     AS $$
-
+DECLARE
+    r RECORD;
 BEGIN
+    -- Find all document IDs that have embeddings but no terms processed yet
+    FOR r IN 
+        SELECT DISTINCT document_id 
+        FROM public.chunked_embeddings ce
+        WHERE NOT EXISTS (
+            SELECT 1 FROM public.document_terms dt WHERE dt.document_id = ce.document_id
+        )
+    LOOP
+        RAISE NOTICE 'Processing terms for Document ID: %', r.document_id;
+        CALL public.process_document_terms_incremental(r.document_id);
+    END LOOP;
 
-    delete from  chunked_embedding_terms;
-    delete from  db_document_terms;
-    delete from terms;
-    delete from document_terms;
-
-    -- 1. Create normalized chunk terms (lowercase, no punctuation)
-
-    --CREATE TABLE chunked_embedding_terms AS 
-    insert into chunked_embedding_terms (id , document_id, cleaned_word ) 
-    SELECT 
-        ce.id,
-        ce.document_id,
-        LOWER(REGEXP_REPLACE(word, '[^a-zA-Z0-9]', '', 'g')) AS cleaned_word
-    FROM chunked_embeddings ce
-    CROSS JOIN LATERAL REGEXP_SPLIT_TO_TABLE(ce.input_text, '\s+') AS word
-    WHERE LENGTH(REGEXP_REPLACE(word, '[^a-zA-Z0-9]', '', 'g')) > 2; -- Filter out very short words
-
-    -- 2. Create document terms with frequencies
-    --CREATE TABLE db_document_terms AS 
-    insert into db_document_terms ( document_id, term_text, simple_freq )
-    SELECT 
-        d.id AS document_id,
-        cet.cleaned_word AS term_text,
-        COUNT(*) AS simple_freq
-    FROM chunked_embedding_terms cet
-    JOIN chunked_embeddings ce ON cet.id = ce.id
-    JOIN documents d ON ce.document_id = d.id
-    GROUP BY d.id, cet.cleaned_word
-    HAVING COUNT(*) > 1; -- Filter out hapax legomena (single occurrences)
-
-
-    insert into terms ( term_text )  select distinct(   term_text  ) from db_document_terms;
-
-    insert into document_terms ( document_id, term_id , frequency ) select ddt.document_id, t.id, ddt.simple_freq from terms t, db_document_terms ddt where ddt.term_text = t.term_text;
-
-    RAISE NOTICE 'All document_terms refreshed successfully';
-   
-EXCEPTION
-    WHEN OTHERS THEN
-        RAISE EXCEPTION 'Error refreshing document_terms: %', SQLERRM;
+    RAISE NOTICE 'Incremental term parsing complete.';
 END;
 $$;
 
@@ -676,5 +711,5 @@ ALTER TABLE ONLY public.document_topics
 -- PostgreSQL database dump complete
 --
 
-\unrestrict CsnxC0aizxfhwuZI0xGoGGmrELK2DHOfIua51YG9kLZhCkadsA5td5ChxwgYqj0
+\unrestrict QZrzAnG1Eak64tEbfYBj3O0ghGon20uEIDHYq49eyrI9o8MJ0n4gWQeoSkPdmJb
 
