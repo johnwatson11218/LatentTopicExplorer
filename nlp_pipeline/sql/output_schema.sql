@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict isH93kWlZOj5WLe9GYBGg3KKW2DHvRvd0uWfgr08meDtg9s5Iys1aQ3kE2MUMgw
+\restrict CsnxC0aizxfhwuZI0xGoGGmrELK2DHOfIua51YG9kLZhCkadsA5td5ChxwgYqj0
 
--- Dumped from database version 16.11
--- Dumped by pg_dump version 16.11
+-- Dumped from database version 16.13
+-- Dumped by pg_dump version 16.13
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -108,6 +108,79 @@ $$;
 ALTER PROCEDURE public.refresh_topic_tables() OWNER TO postgres;
 
 --
+-- Name: simple_terms_parser(); Type: PROCEDURE; Schema: public; Owner: postgres
+--
+
+CREATE PROCEDURE public.simple_terms_parser()
+    LANGUAGE plpgsql
+    AS $$
+
+BEGIN
+
+    delete from  chunked_embedding_terms;
+    delete from  db_document_terms;
+    delete from terms;
+    delete from document_terms;
+
+    -- 1. Create normalized chunk terms (lowercase, no punctuation)
+
+    --CREATE TABLE chunked_embedding_terms AS 
+    insert into chunked_embedding_terms (id , document_id, cleaned_word ) 
+    SELECT 
+        ce.id,
+        ce.document_id,
+        LOWER(REGEXP_REPLACE(word, '[^a-zA-Z0-9]', '', 'g')) AS cleaned_word
+    FROM chunked_embeddings ce
+    CROSS JOIN LATERAL REGEXP_SPLIT_TO_TABLE(ce.input_text, '\s+') AS word
+    WHERE LENGTH(REGEXP_REPLACE(word, '[^a-zA-Z0-9]', '', 'g')) > 2; -- Filter out very short words
+
+    -- 2. Create document terms with frequencies
+    --CREATE TABLE db_document_terms AS 
+    insert into db_document_terms ( document_id, term_text, simple_freq )
+    SELECT 
+        d.id AS document_id,
+        cet.cleaned_word AS term_text,
+        COUNT(*) AS simple_freq
+    FROM chunked_embedding_terms cet
+    JOIN chunked_embeddings ce ON cet.id = ce.id
+    JOIN documents d ON ce.document_id = d.id
+    GROUP BY d.id, cet.cleaned_word
+    HAVING COUNT(*) > 1; -- Filter out hapax legomena (single occurrences)
+
+
+    insert into terms ( term_text )  select distinct(   term_text  ) from db_document_terms;
+
+    insert into document_terms ( document_id, term_id , frequency ) select ddt.document_id, t.id, ddt.simple_freq from terms t, db_document_terms ddt where ddt.term_text = t.term_text;
+
+    RAISE NOTICE 'All document_terms refreshed successfully';
+   
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE EXCEPTION 'Error refreshing document_terms: %', SQLERRM;
+END;
+$$;
+
+
+ALTER PROCEDURE public.simple_terms_parser() OWNER TO postgres;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- Name: chunked_embedding_terms; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.chunked_embedding_terms (
+    id integer,
+    document_id integer,
+    cleaned_word text
+);
+
+
+ALTER TABLE public.chunked_embedding_terms OWNER TO postgres;
+
+--
 -- Name: chunked_embeddings_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
 
@@ -120,10 +193,6 @@ CREATE SEQUENCE public.chunked_embeddings_id_seq
 
 
 ALTER SEQUENCE public.chunked_embeddings_id_seq OWNER TO postgres;
-
-SET default_tablespace = '';
-
-SET default_table_access_method = heap;
 
 --
 -- Name: chunked_embeddings; Type: TABLE; Schema: public; Owner: postgres
@@ -140,7 +209,18 @@ CREATE TABLE public.chunked_embeddings (
 
 ALTER TABLE public.chunked_embeddings OWNER TO postgres;
 
+--
+-- Name: db_document_terms; Type: TABLE; Schema: public; Owner: postgres
+--
 
+CREATE TABLE public.db_document_terms (
+    document_id integer,
+    term_text text,
+    simple_freq bigint
+);
+
+
+ALTER TABLE public.db_document_terms OWNER TO postgres;
 
 --
 -- Name: doc_coords; Type: TABLE; Schema: public; Owner: postgres
@@ -208,7 +288,6 @@ CREATE TABLE public.document_topics (
 
 ALTER TABLE public.document_topics OWNER TO postgres;
 
-
 --
 -- Name: document_topics_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
 --
@@ -261,7 +340,6 @@ CREATE TABLE public.documents (
 
 ALTER TABLE public.documents OWNER TO postgres;
 
-
 --
 -- Name: term_df; Type: TABLE; Schema: public; Owner: postgres
 --
@@ -273,7 +351,6 @@ CREATE TABLE public.term_df (
 
 
 ALTER TABLE public.term_df OWNER TO postgres;
-
 
 --
 -- Name: term_tf; Type: TABLE; Schema: public; Owner: postgres
@@ -287,8 +364,6 @@ CREATE TABLE public.term_tf (
 
 
 ALTER TABLE public.term_tf OWNER TO postgres;
-
-
 
 --
 -- Name: terms; Type: TABLE; Schema: public; Owner: postgres
@@ -353,7 +428,6 @@ CREATE TABLE public.topic_term_tfidf (
 
 ALTER TABLE public.topic_term_tfidf OWNER TO postgres;
 
-
 --
 -- Name: topic_terms; Type: TABLE; Schema: public; Owner: postgres
 --
@@ -367,7 +441,6 @@ CREATE TABLE public.topic_terms (
 
 
 ALTER TABLE public.topic_terms OWNER TO postgres;
-
 
 --
 -- Name: topic_top_terms; Type: TABLE; Schema: public; Owner: postgres
@@ -383,7 +456,6 @@ CREATE TABLE public.topic_top_terms (
 
 ALTER TABLE public.topic_top_terms OWNER TO postgres;
 
-
 --
 -- Name: topics; Type: TABLE; Schema: public; Owner: postgres
 --
@@ -395,11 +467,6 @@ CREATE TABLE public.topics (
 
 
 ALTER TABLE public.topics OWNER TO postgres;
-
---
--- Name: topics_archive_20251030_164836; Type: TABLE; Schema: public; Owner: postgres
---
-
 
 --
 -- Name: topics_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -421,7 +488,6 @@ ALTER SEQUENCE public.topics_id_seq OWNER TO postgres;
 --
 
 ALTER SEQUENCE public.topics_id_seq OWNED BY public.topics.id;
-
 
 
 --
@@ -450,7 +516,6 @@ ALTER TABLE ONLY public.terms ALTER COLUMN id SET DEFAULT nextval('public.terms_
 --
 
 ALTER TABLE ONLY public.topics ALTER COLUMN id SET DEFAULT nextval('public.topics_id_seq'::regclass);
-
 
 
 --
@@ -523,7 +588,6 @@ ALTER TABLE ONLY public.terms
 
 ALTER TABLE ONLY public.topics
     ADD CONSTRAINT topics_pkey PRIMARY KEY (id);
-
 
 
 --
@@ -608,60 +672,9 @@ ALTER TABLE ONLY public.document_topics
     ADD CONSTRAINT document_topics_topic_id_fkey FOREIGN KEY (topic_id) REFERENCES public.topics(id) ON DELETE CASCADE;
 
 
-
-
-CREATE PROCEDURE public.simple_terms_parser()
-    LANGUAGE plpgsql
-    AS $$
-BEGIN
-
-    DROP TABLE IF EXISTS chunked_embedding_terms;
-    DROP TABLE IF EXISTS db_document_terms;
-    delete from terms;
-    delete from document_terms;
-
-    -- 1. Create normalized chunk terms (lowercase, no punctuation)
-
-    CREATE TABLE chunked_embedding_terms AS 
-    SELECT 
-        ce.id,
-        ce.document_id,
-        LOWER(REGEXP_REPLACE(word, '[^a-zA-Z0-9]', '', 'g')) AS cleaned_word
-    FROM chunked_embeddings ce
-    CROSS JOIN LATERAL REGEXP_SPLIT_TO_TABLE(ce.input_text, '\s+') AS word
-    WHERE LENGTH(REGEXP_REPLACE(word, '[^a-zA-Z0-9]', '', 'g')) > 2; -- Filter out very short words
-
-    -- 2. Create document terms with frequencies
-    CREATE TABLE db_document_terms AS 
-    SELECT 
-        d.id AS document_id,
-        cet.cleaned_word AS term_text,
-        COUNT(*) AS simple_freq
-    FROM chunked_embedding_terms cet
-    JOIN chunked_embeddings ce ON cet.id = ce.id
-    JOIN documents d ON ce.document_id = d.id
-    GROUP BY d.id, cet.cleaned_word
-    HAVING COUNT(*) > 1; -- Filter out hapax legomena (single occurrences)
-
-
-    insert into terms ( term_text )  select distinct(   term_text  ) from db_document_terms;
-
-    insert into document_terms ( document_id, term_id , frequency ) select ddt.document_id, t.id, ddt.simple_freq from terms t, db_document_terms ddt where ddt.term_text = t.term_text;
-
-    RAISE NOTICE 'All document_terms refreshed successfully';
-   
-EXCEPTION
-    WHEN OTHERS THEN
-        RAISE EXCEPTION 'Error refreshing document_terms: %', SQLERRM;
-END;
-$$;
-
-
-ALTER PROCEDURE public.simple_terms_parser() OWNER TO postgres;
-
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict isH93kWlZOj5WLe9GYBGg3KKW2DHvRvd0uWfgr08meDtg9s5Iys1aQ3kE2MUMgw
+\unrestrict CsnxC0aizxfhwuZI0xGoGGmrELK2DHOfIua51YG9kLZhCkadsA5td5ChxwgYqj0
 
