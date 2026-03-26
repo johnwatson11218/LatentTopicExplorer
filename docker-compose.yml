@@ -99,6 +99,9 @@ services:
       profiles: ["server"]
       networks: 
         - nlp_network  
+      ports:
+        - "6379:6379"
+
   
   flask_app:
     build: ./flask_app # path to the directory containing the Dockerfile
