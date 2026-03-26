@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
+    profiles: ["server"]
     container_name: nlp_postgres
     environment:
       POSTGRES_DB: second_brain
@@ -24,19 +25,20 @@ services:
     build: 
       context: ./nlp_pipeline
       dockerfile: Dockerfile.embedder   # copy, paste, rename of original Docker file
+    profiles: ["worker"]
     command: celery -A celery_worker worker --queues=embed_tasks --concurrency=4 --loglevel=info
     environment:
       - REDIS_URL=redis://redis:6379
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
 
-    depends_on:
-      - redis
-      - postgres
+    # depends_on:
+    #   - redis
+    #   - postgres
     # optional: restart if it crashes
     restart: unless-stopped
-    networks:
-      - nlp_network
+    # networks:
+    #   - nlp_network
     stdin_open: true
     tty: true
     #runtime : nvidia # comment out this line for systems w/o gpu + drivers/software to access via docker
@@ -46,18 +48,19 @@ services:
     build: 
       context: ./nlp_pipeline
       dockerfile: Dockerfile   # original docker file, pared down for just this task
+    profiles: ["worker"]
     command: celery -A celery_doc_parser worker --queues=parse_docs --concurrency=2 --loglevel=info
     environment:
       - REDIS_URL=redis://redis:6379
     volumes:
       - ./data:/app/data
-    depends_on:
-      - redis
-      - postgres
+    # depends_on:
+    #   - redis
+    #   - postgres
     # optional: restart if it crashes
     restart: unless-stopped
-    networks:
-      - nlp_network
+    # networks:
+    #   - nlp_network
     stdin_open: true
     tty: true
 
@@ -69,11 +72,12 @@ services:
     build: 
       context: ./nlp_pipeline
       dockerfile: Dockerfile.pipeline
+    profiles: ["worker"]
     command: python worker.py
     container_name: nlp_python
-    depends_on:
-      postgres:
-        condition: service_healthy
+    # depends_on:
+    #   postgres:
+    #     condition: service_healthy
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -85,18 +89,20 @@ services:
     volumes:
       - ./data:/app/data
 
-    networks:
-      - nlp_network
+    # networks:
+    #   - nlp_network
     stdin_open: true
     tty: true
     
   redis:
       image: redis:alpine    
+      profiles: ["server"]
       networks: 
         - nlp_network  
   
   flask_app:
     build: ./flask_app # path to the directory containing the Dockerfile
+    profiles: ["server"]
     ports:
       - "0.0.0.0:8000:5000"
     networks:
