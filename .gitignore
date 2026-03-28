@@ -1,6 +1,9 @@
 # Ignore all contents of the data directory
 data/
 
+nlp_pipeline/.venv-pipeline/
+nlp_pipeline/__pycache__/
+
 # But do not ignore the .gitkeep file itself
 !data/.gitkeep
 zz

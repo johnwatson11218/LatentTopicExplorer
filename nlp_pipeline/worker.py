@@ -14,7 +14,7 @@ from collections import defaultdict, Counter
 from umap import UMAP
 
 from sklearn.cluster import HDBSCAN
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 #import seaborn as sns
 import pandas as pd
 
@@ -26,16 +26,16 @@ from celery import group
 from celery_worker import embed_single_document
 
 # --- CONFIGURATION ---
-REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379')
+REDIS_URL = os.getenv('REDIS_URL', 'redis://rp:6379')
 DB_CONFIG = {
     "dbname": "second_brain",
     "user": "postgres",
     "password": "test_case",
-    "host": "postgres",
+    "host": "rp",
     "port": 5432
 }
 MAX_BYTES = 1048575
-DATA_FOLDER = "data/"
+DATA_FOLDER = "../data/"
 
 
 
@@ -335,20 +335,23 @@ def process_pdfs():
         cur.execute('SELECT file_path FROM public.documents')
         existing_files = {row[0] for row in cur.fetchall()}
         print(f"Known files in DB: {len(existing_files)}")
-
+        cur.close()
+        conn.close()
+        
+        
         # 2. Walk the directory
         paths2process = []
         for root, dirs, files in os.walk(DATA_FOLDER):
+            
             for filename in files:
+                print( filename )
                 if filename.endswith(".pdf") and not filename.startswith("."):
                     path = os.path.join(root, filename)
 
                     if path in existing_files:
                         continue
                     paths2process.append( path )                                        
-        cur.close()
-        conn.close()
-
+                    
         if not paths2process:
             print( "no files to import" )
             return
