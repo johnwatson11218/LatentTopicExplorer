@@ -7,13 +7,14 @@ from celery.utils.log import get_task_logger
 
 logger = get_task_logger(__name__)
 
+
 REDIS_URL = os.getenv('REDIS_URL', 'redis://rp:6379')
 DB_CONFIG = {
-    "dbname": "second_brain",
-    "user": "postgres",
-    "password": "test_case",
-    "host": "rp",
-    "port": 5432
+    "dbname": os.getenv( 'DB_NAME', "second_brain" ),
+    "user": os.getenv( 'DB_USER', "postgres" ),
+    "password": os.getenv( 'DB_PASSWORD', "test_case" ),
+    "host": os.getenv( 'DB_HOST', "rp" ),
+    "port": os.getenv( 'DB_PORT', 5432 )
 }
 
 # Celery listens on a dedicated queue so it doesn't conflict with your existing worker

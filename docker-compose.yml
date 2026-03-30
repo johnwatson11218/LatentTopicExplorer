@@ -51,7 +51,12 @@ services:
     profiles: ["worker"]
     command: celery -A celery_doc_parser worker --queues=parse_docs --concurrency=2 --loglevel=info
     environment:
-      - REDIS_URL=redis://redis:6379
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: second_brain
+      DB_USER: postgres
+      DB_PASSWORD: test_case
+      REDIS_URL: redis://redis:6379
     volumes:
       - ./data:/app/data
     depends_on:
