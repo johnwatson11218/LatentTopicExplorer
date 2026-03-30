@@ -1,6 +1,6 @@
 # LatentTopicExplorer
 
-Application to discover and explore topics in a PDF corpus using machine learning and natural language processing.
+Application to discover and explore topics in a PDF corpus using machine learning and natural language processing. test change
 
 ![Topic Visualization Dashboard](image2.png)
 
