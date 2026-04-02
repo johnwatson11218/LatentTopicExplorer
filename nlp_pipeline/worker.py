@@ -26,16 +26,17 @@ from celery import group
 from celery_worker import embed_single_document
 
 # --- CONFIGURATION ---
-REDIS_URL = os.getenv('REDIS_URL', 'redis://rp:6379')
+REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379')
 DB_CONFIG = {
-    "dbname": "second_brain",
-    "user": "postgres",
-    "password": "test_case",
-    "host": "rp",
-    "port": 5432
+    "dbname": os.getenv( 'DB_NAME', "second_brain" ),
+    "user": os.getenv( 'DB_USER', "postgres" ),
+    "password": os.getenv( 'DB_PASSWORD', "test_case" ),
+    "host": os.getenv( 'DB_HOST', "postgres" ),
+    "port": os.getenv( 'DB_PORT', 5432 )
 }
+
 MAX_BYTES = 1048575
-DATA_FOLDER = "../data/"
+DATA_FOLDER = "data/"
 
 
 

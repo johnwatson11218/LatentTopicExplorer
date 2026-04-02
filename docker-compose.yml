@@ -49,7 +49,7 @@ services:
       context: ./nlp_pipeline
       dockerfile: Dockerfile   # original docker file, pared down for just this task
     profiles: ["worker"]
-    command: celery -A celery_doc_parser worker --queues=parse_docs --concurrency=2 --loglevel=info
+    command: celery -A celery_doc_parser worker --queues=parse_docs --concurrency=4 --loglevel=info
     environment:
       DB_HOST: postgres
       DB_PORT: 5432

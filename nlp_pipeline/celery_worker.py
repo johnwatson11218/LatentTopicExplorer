@@ -8,12 +8,12 @@ from celery.utils.log import get_task_logger
 logger = get_task_logger(__name__)
 
 
-REDIS_URL = os.getenv('REDIS_URL', 'redis://rp:6379')
+REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379')
 DB_CONFIG = {
     "dbname": os.getenv( 'DB_NAME', "second_brain" ),
     "user": os.getenv( 'DB_USER', "postgres" ),
     "password": os.getenv( 'DB_PASSWORD', "test_case" ),
-    "host": os.getenv( 'DB_HOST', "rp" ),
+    "host": os.getenv( 'DB_HOST', "postgres" ),
     "port": os.getenv( 'DB_PORT', 5432 )
 }
 
