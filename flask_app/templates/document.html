@@ -2,45 +2,29 @@
 
 <head>
     <title>Single Document View</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/main.css') }}" />
+    <style>
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 200px;
+            /* wide main + narrow sidebar */
+            gap: 3rem;
+            margin: 100px;
+        }
+
+
+
+        .sidebar {
+            border-top: 2px solid black;
+        }
+
+        .sidebar-label {
+            font-size: 0.7rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+    </style>
 </head>
-<style>
-    .layout {
-        display: grid;
-        grid-template-columns: 1fr 200px;
-        /* wide main + narrow sidebar */
-        gap: 3rem;
-        margin : 100px;
-    }
-
-    p {
-        text-indent: 1.5em;
-        margin: 0;
-        line-height: 1.7;
-    }
-
-    p:first-child {
-        text-indent: 0;
-    }
-
-    .sidebar {
-        border-top: 2px solid black;
-    }
-
-    .sidebar-label {
-        font-size: 0.7rem;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-    }
-
-    h1 {
-        font-family : 'Inter', sans-serif;
-        font-weight: 900;
-        margin : 20px;
-        /*border : 1px  solid grey; */
-        
-        
-    }
-</style>
 
 <body>
 
@@ -52,17 +36,17 @@
 
         <h1> {{ doc_data[0]['file_path'] }} </h1>
 
-        
+
         <div class='layout'>
             <div class="body">
-                <p> 
-                    {{ doc_data[0]['preview'] }} 
+                <p>
+                    {{ doc_data[0]['preview'] }}
                 </p>
             </div>
             <aside class="sidebar">
                 <ul>
-                    <li>Number of characters (db)  {{ doc_data[0]['len'] }} </li>
-                    <li>Document embedded?  {{ doc_data[0]['embedded'] }}   </li>
+                    <li>Number of characters (db) {{ doc_data[0]['len'] }} </li>
+                    <li>Document embedded? {{ doc_data[0]['embedded'] }} </li>
                 </ul>
             </aside>
         </div>

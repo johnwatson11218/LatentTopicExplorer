@@ -21,42 +21,16 @@
             /* Fade out over remaining time */
         }
 
-        body {
-            font-family: 'Libre Baskerville', serif;
-            margin: 20px;
-            padding: 20px;
-            background-color: #494847;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        h1 {
-            color: #333;
-        }
-
-        .count {
-            background-color: #e8f5e9;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            font-size: 1.2em;
-        }
 
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
-        }
+        } 
+      
 
         th {
-            background-color: #4CAF50;
+            background-color: #5524cf;
             color: white;
             padding: 12px;
             text-align: left;
@@ -64,18 +38,88 @@
 
         td {
             padding: 10px;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #434040;
         }
 
         tr:nth-child(even) {
             background-color: #f9f9f9;
         }
-
+  
         tr:hover {
             background-color: #f5f5f5;
         }
 
-        .topic-label {
-            font-weight: bold;
-            color: #2c3e50;
-        }
+
+
+        /* ─── Butterick baseline ─────────────────────────────────────── */
+
+body {
+  font-family: Charter, 'Bitstream Charter', Cambria, Georgia, serif;
+  font-size: 18px;
+  line-height: 1.35;
+  
+  /* line length: keep body text ~65–70ch, centered */
+  max-width: 168ch;
+  margin-inline: auto;
+  padding: 2rem 1.5rem;
+
+  /* kerning always on */
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures;
+  
+  /* hyphenation for justified or ragged text */
+  hyphens: auto;
+  
+  text-rendering: optimizeLegibility;
+}
+
+/* ─── Paragraphs: space-between, no indent ───────────────────── */
+p {
+  margin-top: 0;
+  margin-bottom: 0.75em;
+}
+
+/* OR use first-line indent instead — pick one, not both */
+/*
+p + p {
+  text-indent: 1.5em;
+  margin-bottom: 0;
+}
+*/
+
+/* ─── Headings ───────────────────────────────────────────────── */
+h1, h2, h3, h4 {
+  font-weight: bold;
+  line-height: 1.15;
+  margin-top: 1.6em;
+  margin-bottom: 0.4em;
+  letter-spacing: 0;          /* no letterspacing on mixed case */
+}
+
+/* ─── All-caps: needs a little tracking ─────────────────────── */
+.caps, abbr {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;     /* 5–12% per Butterick */
+  font-size: 0.9em;
+}
+
+/* ─── No underline except links ──────────────────────────────── */
+u { text-decoration: none; }  /* kill <u> */
+
+a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ─── Bold and italic: use sparingly, never together ────────── */
+strong { font-weight: bold; font-style: normal; }
+em     { font-style: italic; font-weight: normal; }
+
+/* ─── Quotes: curly, not straight ───────────────────────────── */
+/* handled by: quotes: '\201C' '\201D' '\2018' '\2019'; */
+:root { quotes: '\201C' '\201D' '\2018' '\2019'; }
+q::before { content: open-quote; }
+q::after  { content: close-quote; }
+
+/* ─── Ellipsis and special chars ────────────────────────────── */
+/* Use … (&hellip;) in markup, not "..." — nothing to enforce in CSS */
