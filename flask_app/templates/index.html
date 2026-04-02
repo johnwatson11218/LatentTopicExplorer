@@ -71,40 +71,40 @@
 
 <body>
     <h1>Document Analysis Dashboard</h1>
+    <div class="container">
 
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div id="flash">
+            <ul>
+                {% for message in messages %}
+                <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        {% endwith %}
 
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-    <div id="flash">
-        <ul>
-            {% for message in messages %}
-            <li>{{ message }}</li>
-            {% endfor %}
-        </ul>
-    </div>
-    {% endif %}
-    {% endwith %}
-
-    <div>Get the code --
-        <pre>https://github.com/johnwatson11218/LatentTopicExplorer/</pre>
-    </div>
-    <div id="controlPanel">
-        <form action="/load_docs"> <input type="submit" value="Load Docs" /> </form>
-        <form action="/embed_docs"> <input type="submit" value="Embed Docs" /> </form>
-        <form action="/terms"> <input type="submit" value="Terms" /> </form>
-        <form action="/umap"> <input type="submit" value="UMAP" /> </form>
-        <form action="/tf_idf"> <input type="submit" value="Tf-Idf" /> </form>
-        <form action="/clear_cache"><input type="submit" value="Clear Cache" /> </form>
+        https://github.com/johnwatson11218/LatentTopicExplorer/
     </div>
 
-    <div class="count">
-        Total Documents in Database: <strong>
-            {{ count }}
-        </strong>
+    <div class="container">
+        <div id="controlPanel">
+            <form action="/load_docs"> <input type="submit" value="Load Docs" /> </form>
+            <form action="/embed_docs"> <input type="submit" value="Embed Docs" /> </form>
+            <form action="/terms"> <input type="submit" value="Terms" /> </form>
+            <form action="/umap"> <input type="submit" value="UMAP" /> </form>
+            <form action="/tf_idf"> <input type="submit" value="Tf-Idf" /> </form>
+            <form action="/clear_cache"><input type="submit" value="Clear Cache" /> </form>
+        </div>
+
+
+
+        <div id="chartDiv" style="width: 100%; height: 400px;"></div>
+
     </div>
 
-    <div id="chartDiv" style="width: 100%; height: 400px;"></div>
-    <h2>Topics and Associated Documents</h2>
+           Total Documents in Database:{{ count }}
 
 
     <table>
@@ -128,10 +128,6 @@
         </tbody>
     </table>
 
-
-    <p>
-        Data generated at: {{ date }}
-    </p>
 
 
 

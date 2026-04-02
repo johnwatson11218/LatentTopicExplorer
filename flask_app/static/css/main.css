@@ -21,6 +21,9 @@
             /* Fade out over remaining time */
         }
 
+        .container { 
+            display : flex;
+        }
 
         table {
             width: 100%;

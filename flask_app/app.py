@@ -28,8 +28,7 @@ def hello_world():
             ) for td in _topic_data 
     ]
     
-    return render_template( 'index.html', count=get_count_docs(), topic_data=_topic_data,
-                           date=datetime.datetime.now(), x = get_document_coords(  ),x_map=x_map )
+    return render_template( 'index.html', count=get_count_docs(), topic_data=_topic_data, x = get_document_coords(  ),x_map=x_map )
 
 @app.route("/document/<id>")
 def document_by_id( id ):
