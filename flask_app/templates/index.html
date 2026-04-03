@@ -12,6 +12,21 @@
 
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
     <script lang="js">
+        // Wait for the DOM to load
+        document.addEventListener('DOMContentLoaded', () => {
+            const drawer = document.getElementById('settingsDrawer');
+            const openBtn = document.getElementById('openSettings');
+
+            // Only add the listener if the button exists
+            if (openBtn) {
+                openBtn.onclick = () => {
+                    drawer.showModal(); // This slides it in!
+                };
+            }
+        });
+
+
+
         document.addEventListener('DOMContentLoaded', function () {
             // Use JSON.stringify to safely pass the object to the client-side script
             const serverData = {{ x | safe
@@ -70,24 +85,32 @@
 </head>
 
 <body>
-<h1 style="text-align: center; font-size: 3rem; margin-top: 0;">Document Analysis Dashboard</h1>    <div class="container">
 
-        {% with messages = get_flashed_messages() %}
-        {% if messages %}
-        <div id="flash">
-            <ul>
-                {% for message in messages %}
-                <li>{{ message }}</li>
-                {% endfor %}
-            </ul>
-        </div>
-        {% endif %}
-        {% endwith %}
+    <h1 style="text-align: center; font-size: 3rem; margin-top: 0;">
+        Document Analysis Dashboard
+         <a href="https://github.com/johnwatson11218/LatentTopicExplorer/" style="font-size: 1rem;">Get the code.</a>
+    </h1>
+   
 
-        https://github.com/johnwatson11218/LatentTopicExplorer/
+
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div id="flash">
+        <ul>
+            {% for message in messages %}
+            <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
     </div>
+    {% endif %}
+    {% endwith %}
 
-    <div class="container">
+
+    <button id="openSettings">Document Import</button>
+
+    <dialog id="settingsDrawer">
+        <h2>Document Import Control Panel</h2>
+        <!-- Your forms go here -->
         <div id="controlPanel">
             <form action="/load_docs"> <input type="submit" value="Load Docs" /> </form>
             <form action="/embed_docs"> <input type="submit" value="Embed Docs" /> </form>
@@ -97,13 +120,17 @@
             <form action="/clear_cache"><input type="submit" value="Clear Cache" /> </form>
         </div>
 
+        <form method="dialog"> <!-- This automatically closes the dialog when submitted -->
+            <button>Save & Close</button>
+        </form>
+    </dialog>
 
 
-        <div id="chartDiv" style="width: 100%; height: 400px;"></div>
 
-    </div>
+    <div id="chartDiv"></div>
 
-           Total Documents in Database:{{ count }}
+
+    Total Documents in Database:{{ count }}
 
 
     <table>

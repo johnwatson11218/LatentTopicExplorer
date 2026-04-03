@@ -32,7 +32,7 @@ def hello_world():
 
 @app.route("/document/<id>")
 def document_by_id( id ):
-    sql = f" select id, file_path, left(  d.raw_text, 20000 ) || ' ...'  as preview , length( raw_text ) as len , embedding is not null as embedded from documents d where d.id = {id}"
+    sql = f" select id, file_path, left(  d.raw_text, 20000 ) as preview , length( raw_text ) as len , embedding is not null as embedded from documents d where d.id = {id}"
     
     con = get_db_connection()
     curr = con.cursor( cursor_factory=RealDictCursor)
