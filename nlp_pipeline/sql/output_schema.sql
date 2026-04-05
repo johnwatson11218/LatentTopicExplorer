@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict QZrzAnG1Eak64tEbfYBj3O0ghGon20uEIDHYq49eyrI9o8MJ0n4gWQeoSkPdmJb
+\restrict dZunb9cj5AC05wTWJ9c6oWCeXg6uapfL3nV21GSt4RLZJggGHWfezc8Tg7KXPSL
 
 -- Dumped from database version 16.13
 -- Dumped by pg_dump version 16.13
@@ -376,6 +376,34 @@ CREATE TABLE public.documents (
 ALTER TABLE public.documents OWNER TO postgres;
 
 --
+-- Name: pages_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.pages_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    MAXVALUE 2147483647
+    CACHE 1;
+
+
+ALTER SEQUENCE public.pages_id_seq OWNER TO postgres;
+
+--
+-- Name: pages; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.pages (
+    id integer DEFAULT nextval('public.pages_id_seq'::regclass) NOT NULL,
+    input_text text,
+    sequence_number integer,
+    document_id integer NOT NULL
+);
+
+
+ALTER TABLE public.pages OWNER TO postgres;
+
+--
 -- Name: term_df; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -711,5 +739,5 @@ ALTER TABLE ONLY public.document_topics
 -- PostgreSQL database dump complete
 --
 
-\unrestrict QZrzAnG1Eak64tEbfYBj3O0ghGon20uEIDHYq49eyrI9o8MJ0n4gWQeoSkPdmJb
+\unrestrict dZunb9cj5AC05wTWJ9c6oWCeXg6uapfL3nV21GSt4RLZJggGHWfezc8Tg7KXPSL
 

@@ -56,29 +56,28 @@ def read_and_parse_single_file( self,  path ):
     print(f"Processing new file: {path}")
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
-    raw_text = ""
+    #raw_text = ""
     try:
+        cur.execute( "INSERT INTO public.documents (file_path, raw_text, title ) VALUES (%s, %s, %s) RETURNING id;", (path, '', path))
+        new_id = cur.fetchone()[0]
+        conn.commit()
+        
         with pdfplumber.open(path) as pdf:
+            sq = 0
             for page in pdf.pages:
                 page_text = page.extract_text()
                 if page_text:
+                    sq = sq + 1
                     # Encode/Decode to strip non-ascii as per your original script
                     clean_page = page_text.encode('ascii', errors='ignore').decode('ascii')
-                    raw_text += clean_page + "\n\n<<PAGE_BREAK>>\n\n"
-        
-        if not raw_text.strip():
-            print(f"Skipping {path}: No text found.")
-            return
+                    #raw_text += clean_page + "\n\n<<PAGE_BREAK>>\n\n"
+                    cur.execute( 'insert into public.pages ( input_text, sequence_number, document_id ) values ( %s, %s, %s ) ', ( clean_page, sq , new_id))
+                    conn.commit()
 
         # 3. Clean and Save
-        cleaned = clean_text_for_postgres(raw_text)
-        clipped = clip_to_byte_limit(cleaned, MAX_BYTES - 1)
+        # cleaned = clean_text_for_postgres(raw_text)
+        # clipped = clip_to_byte_limit(cleaned, MAX_BYTES - 1)
 
-        cur.execute(
-            "INSERT INTO public.documents (file_path, raw_text, title ) VALUES (%s, %s, %s) RETURNING id;",
-            (path, clipped, path)
-        )
-        new_id = cur.fetchone()[0]
         conn.commit()
         print(f"Inserted ID: {new_id}")
 
