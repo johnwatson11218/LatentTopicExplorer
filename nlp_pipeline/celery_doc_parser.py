@@ -58,7 +58,11 @@ def read_and_parse_single_file( self,  path ):
     cur = conn.cursor()
     #raw_text = ""
     try:
-        cur.execute( "INSERT INTO public.documents (file_path, raw_text, title ) VALUES (%s, %s, %s) RETURNING id;", (path, '', path))
+        
+        
+        with open(path, "rb") as f:
+            pdf_bytes = f.read()
+        cur.execute( "INSERT INTO public.documents (file_path, raw_text, title, pdf_data ) VALUES (%s, %s, %s, %s ) RETURNING id;", (path, '', path, pdf_bytes))
         new_id = cur.fetchone()[0]
         conn.commit()
         
@@ -90,3 +94,12 @@ def read_and_parse_single_file( self,  path ):
         conn.close()
 
         
+"""
+-- after all the documents are loaded don't forget to run sql like this so that subsequent steps in the pipeline don't
+-- need to be modified. 
+with all_text as ( 
+select p.document_id id ,  string_agg( input_text, '' order by sequence_number )  text   from pages p group by p.document_id 
+)
+update documents d set raw_text = a.text from all_text a where a.id = d.id ;
+"""
+

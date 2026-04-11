@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict dZunb9cj5AC05wTWJ9c6oWCeXg6uapfL3nV21GSt4RLZJggGHWfezc8Tg7KXPSL
+\restrict kswtUH7sLMflvMkAnn1sgzA3jnyrUehavNXg4fo8VhUtlIfy2NlCX57UsLY9PMM
 
 -- Dumped from database version 16.13
 -- Dumped by pg_dump version 16.13
@@ -369,8 +369,10 @@ CREATE TABLE public.documents (
     raw_text text,
     embedding real[],
     date_created timestamp without time zone DEFAULT now(),
-    title text
+    title text,
+    pdf_data bytea
 );
+ALTER TABLE ONLY public.documents ALTER COLUMN pdf_data SET STORAGE EXTERNAL;
 
 
 ALTER TABLE public.documents OWNER TO postgres;
@@ -739,5 +741,5 @@ ALTER TABLE ONLY public.document_topics
 -- PostgreSQL database dump complete
 --
 
-\unrestrict dZunb9cj5AC05wTWJ9c6oWCeXg6uapfL3nV21GSt4RLZJggGHWfezc8Tg7KXPSL
+\unrestrict kswtUH7sLMflvMkAnn1sgzA3jnyrUehavNXg4fo8VhUtlIfy2NlCX57UsLY9PMM
 

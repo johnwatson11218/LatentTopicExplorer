@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template, redirect , url_for, flash
+from flask import Flask, jsonify, render_template, redirect , url_for, flash, send_file
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -43,6 +43,22 @@ def document_by_id( id ):
     return render_template( 'document.html', id=id, doc_data=doc_data )
 
 
+@app.route( "/dl/<id>")
+def dl_by_id( id ):
+    con = get_db_connection()
+    pdf_bytes = []
+    file_path = 'buch.pdf'
+    with con.cursor() as cur:
+        cur.execute("SELECT pdf_data, file_path FROM documents WHERE id = %s", (id,))
+        row = cur.fetchone()
+        pdf_bytes = row[0]
+        file_path = row[1]
+        
+    import io
+    buffer = io.BytesIO( pdf_bytes)
+    buffer.seek(0)
+    return send_file( buffer , mimetype='application/pdf', as_attachment=True, download_name=file_path)
+
 @app.route( "/topic/<id>")
 def topic_by_id( id ) :
     #topic_data = { 'doc_ids' : [ 1, 2, 3 ]}
@@ -84,15 +100,6 @@ def tf_idf():
     redis_client.rpush( 'python_tasks', json.dumps( {'task' : 'tf_idf' } ))
     flash("tf_idf.")
     return redirect(url_for('hello_world'))
-
-@app.route("/clear_cache")
-def clear_cache():
-    app.logger.info("A user clicked /clear_cache")
-    global DATA_VERSION
-    DATA_VERSION = DATA_VERSION + 1 
-    flash( f"Clear cache version at {DATA_VERSION}")
-    return redirect( url_for( 'hello_world'))
-  
 
 
 @lru_cache(maxsize=128)
