@@ -1,6 +1,12 @@
 
+import re
 import sqlite3
 import os
+from collections import defaultdict
+import nltk
+from nltk.stem import PorterStemmer
+from nltk.corpus import stopwords
+
 from pathlib import Path
 from typing import List, Tuple, Optional
 from pypdf import PdfReader, PdfWriter
@@ -14,8 +20,6 @@ def init_db(db_path: str = "app_data.db") -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
 
-    # Table 1: parameters (name → float value)
-    # name is TEXT so it's flexible (you can use single chars or longer keys)
     cur.execute(""" CREATE TABLE IF NOT EXISTS documents 
                 ( 
                     id integer primary key,  
@@ -39,8 +43,9 @@ def init_db(db_path: str = "app_data.db") -> sqlite3.Connection:
                 """)
     
     cur.execute( " create table if not exists  terms  ( id integer primary key, term text not null unique ) ")
+    
     cur.execute( """
-                create table if not exists docuemnt_terms (
+                create table if not exists document_terms (
                     id integer primary key, 
                     document_id integer not null references doccuments( id), 
                     term_id integer not null references terms( id ) , 
@@ -122,14 +127,78 @@ def extract_text_from_stored_pages( conn = None ):
     cur.close()
     
     
+def populate_terms(conn=None):
+    print('starting populate_terms()')
+    nltk.download('stopwords', quiet=True)
+    nltk.download('punkt', quiet=True)
+
+    STOP_WORDS = set(stopwords.words('english'))
+    stemmer = PorterStemmer()
+
+    def clean_and_tokenize(text: str) -> list[str]:
+        tokens = re.findall(r'\b[a-z]{2,}\b', text.lower())
+        return [stemmer.stem(t) for t in tokens if t not in STOP_WORDS]
+
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT d.id FROM documents d
+        WHERE NOT EXISTS (
+            SELECT 1 FROM document_terms dt WHERE dt.document_id = d.id
+        )
+    """)
+    document_ids = cur.fetchall()
+    print(f"There are {len(document_ids)} documents to process.")
+
+    for (document_id,) in document_ids:
+        print(f"processing document_id = {document_id}")
+        cur.execute("""
+            SELECT id, extracted_text FROM pages
+            WHERE extracted_text IS NOT NULL
+              AND document_id = ?
+            ORDER BY page_number
+        """, (document_id,))
+        pages = cur.fetchall()
+
+        # accumulate across ALL pages first
+        term_stats: dict = defaultdict(lambda: {"count": 0, "pages": set()})
+        for page_id, text in pages:
+            for term in clean_and_tokenize(text):
+                term_stats[term]['count'] += 1
+                term_stats[term]['pages'].add(page_id)
+
+        # then write to DB once
+        total_tokens = sum(s['count'] for s in term_stats.values())
+        doc_cursor = conn.cursor()
+        for term, stats in term_stats.items():
+            doc_cursor.execute('INSERT OR IGNORE INTO terms (term) VALUES (?)', (term,))
+            if doc_cursor.lastrowid:
+                term_id = doc_cursor.lastrowid
+            else:
+                doc_cursor.execute('SELECT id FROM terms WHERE term = ?', (term,))
+                term_id = doc_cursor.fetchone()[0]
+
+            tf = stats['count'] / total_tokens if total_tokens else 0
+            doc_cursor.execute("""
+                INSERT INTO document_terms (document_id, term_id, raw_count, tf, page_count)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(document_id, term_id) DO UPDATE SET
+                    raw_count  = excluded.raw_count,
+                    tf         = excluded.tf,
+                    page_count = excluded.page_count
+            """, (document_id, term_id, stats['count'], tf, len(stats['pages'])))
+
+        conn.commit()
+        doc_cursor.close()
+
+    cur.close()
+    print('end populate_terms()')
+    
 ###########################################################################################################    
 conn = init_db()
 scan_folder( conn, "data" )
-
 split_pdf_files( conn )
-
-
 extract_text_from_stored_pages( conn )
+populate_terms(conn )
 
 conn.commit()
 conn.close()
