@@ -1,0 +1,65 @@
+import re
+import sqlite3
+from collections import defaultdict
+import nltk
+from nltk.stem import PorterStemmer          # or SnowballStemmer
+from nltk.corpus import stopwords
+
+nltk.download('stopwords', quiet=True)
+nltk.download('punkt', quiet=True)
+
+STOP_WORDS = set(stopwords.words('english'))
+stemmer = PorterStemmer()
+
+def clean_and_tokenize(text: str) -> list[str]:
+    """Lowercase, strip noise, tokenize, remove stopwords, stem."""
+    text = text.lower()
+    tokens = re.findall(r'\b[a-z]{2,}\b', text)   # words 2+ chars, alpha only
+    return [
+        stemmer.stem(t)
+        for t in tokens
+        if t not in STOP_WORDS
+    ]
+
+def build_term_index(conn: sqlite3.Connection) -> None:
+    cur = conn.cursor()
+
+    # pull all pages grouped by document
+    cur.execute("""
+        SELECT document_id, id, extracted_text
+        FROM pages
+        WHERE extracted_text IS NOT NULL
+        ORDER BY document_id, page_number
+    """)
+    rows = cur.fetchall()
+
+    # { document_id: { term: {"count": int, "pages": set()} } }
+    doc_term_stats: dict = defaultdict(lambda: defaultdict(lambda: {"count": 0, "pages": set()}))
+
+    for doc_id, page_id, text in rows:
+        tokens = clean_and_tokenize(text)
+        for term in tokens:
+            doc_term_stats[doc_id][term]["count"] += 1
+            doc_term_stats[doc_id][term]["pages"].add(page_id)
+
+    # upsert terms, then document_terms
+    for doc_id, terms in doc_term_stats.items():
+        total_tokens = sum(s["count"] for s in terms.values())
+        for term, stats in terms.items():
+            cur.execute(
+                "INSERT OR IGNORE INTO terms (term) VALUES (?)", (term,)
+            )
+            cur.execute("SELECT id FROM terms WHERE term = ?", (term,))
+            term_id = cur.fetchone()[0]
+            tf = stats["count"] / total_tokens if total_tokens else 0
+            cur.execute("""
+                INSERT INTO document_terms (document_id, term_id, raw_count, tf, page_count)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(document_id, term_id) DO UPDATE SET
+                    raw_count = excluded.raw_count,
+                    tf        = excluded.tf,
+                    page_count= excluded.page_count
+            """, (doc_id, term_id, stats["count"], tf, len(stats["pages"])))
+        conn.commit()
+
+    cur.close()
