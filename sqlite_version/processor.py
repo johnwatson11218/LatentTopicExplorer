@@ -8,11 +8,15 @@ from nltk.stem import PorterStemmer
 from nltk.corpus import stopwords
 
 from pathlib import Path
-from typing import List, Tuple, Optional
 from pypdf import PdfReader, PdfWriter
 import io
 
-def init_db(db_path: str = "app_data.db") -> sqlite3.Connection:
+from sentence_transformers import SentenceTransformer
+import numpy as np
+
+model = SentenceTransformer('all-MiniLM-L6-v2')
+
+def init_db(db_path: str = None ) -> sqlite3.Connection:
     """Open (or create) the SQLite database and set up tables."""
     db_file = Path(db_path)
     db_file.parent.mkdir(parents=True, exist_ok=True)   # create folder if missing
@@ -26,8 +30,8 @@ def init_db(db_path: str = "app_data.db") -> sqlite3.Connection:
                     filename   TEXT not null,
                     content BLOB, 
                     file_size integer,
-                    inserted_at timestamp default current_timestamp
-                    
+                    inserted_at timestamp default current_timestamp, 
+                    embedding BLOB                    
                     ) 
                 """)
     
@@ -38,7 +42,9 @@ def init_db(db_path: str = "app_data.db") -> sqlite3.Connection:
                     content BLOB, 
                     extracted_text text,
                     page_number integer not null,
-                    inserted_at timestamp default current_timestamp                
+                    inserted_at timestamp default current_timestamp, 
+                    embedding BLOB
+                    
                     ) 
                 """)
     
@@ -47,7 +53,7 @@ def init_db(db_path: str = "app_data.db") -> sqlite3.Connection:
     cur.execute( """
                 create table if not exists document_terms (
                     id integer primary key, 
-                    document_id integer not null references doccuments( id), 
+                    document_id integer not null references documents( id), 
                     term_id integer not null references terms( id ) , 
                     tf real , -- term frequencey ( count / total_terms_in_doc )
                     raw_count integer , -- how many times the term appears in this doc
@@ -56,7 +62,7 @@ def init_db(db_path: str = "app_data.db") -> sqlite3.Connection:
                 )""")
     conn.commit()
     print(f"✅ Database ready: {db_path} ({db_file.stat().st_size} bytes)")
-    return conn
+    
 
 def scan_folder(  conn = None, file_path : str = "data" ) -> None:
     print( f"starting scan file_path ={file_path}, conn {conn}")
@@ -113,8 +119,7 @@ def extract_text_from_stored_pages( conn = None ):
     print(f"found {len(rows)} pages to attempt to extract text from")
     for row in rows:
         page_id, page_blob = row
-        try:
-            pass
+        try:            
             reader = PdfReader( io.BytesIO( page_blob ))
             page = reader.pages[0]
             raw_text = page.extract_text(extraction_mode='layout')
@@ -170,13 +175,10 @@ def populate_terms(conn=None):
         total_tokens = sum(s['count'] for s in term_stats.values())
         doc_cursor = conn.cursor()
         for term, stats in term_stats.items():
-            doc_cursor.execute('INSERT OR IGNORE INTO terms (term) VALUES (?)', (term,))
-            if doc_cursor.lastrowid:
-                term_id = doc_cursor.lastrowid
-            else:
-                doc_cursor.execute('SELECT id FROM terms WHERE term = ?', (term,))
-                term_id = doc_cursor.fetchone()[0]
-
+            doc_cursor.execute('INSERT INTO terms (term) VALUES (?) ON CONFLICT(term) DO UPDATE SET term=term RETURNING id', (term,) )
+            term_id = doc_cursor.fetchone()[0]
+            
+            
             tf = stats['count'] / total_tokens if total_tokens else 0
             doc_cursor.execute("""
                 INSERT INTO document_terms (document_id, term_id, raw_count, tf, page_count)
@@ -192,13 +194,63 @@ def populate_terms(conn=None):
 
     cur.close()
     print('end populate_terms()')
-    
-###########################################################################################################    
-conn = init_db()
-scan_folder( conn, "data" )
-split_pdf_files( conn )
-extract_text_from_stored_pages( conn )
-populate_terms(conn )
 
-conn.commit()
-conn.close()
+
+
+from sentence_transformers import SentenceTransformer
+import numpy as np
+
+
+
+def populate_embeddings(conn):
+    cur = conn.cursor()
+    
+    # 1. embed each page
+    cur.execute("""
+        SELECT id, extracted_text FROM pages 
+        WHERE extracted_text IS NOT NULL 
+        AND embedding IS NULL
+    """)
+    for page_id, text in cur.fetchall():
+        vec = model.encode(text, normalize_embeddings=True)
+        cur.execute(
+            "UPDATE pages SET embedding = ? WHERE id = ?",
+            (vec.astype(np.float32).tobytes(), page_id)
+        )
+    conn.commit()
+
+    # 2. average page embeddings up to document level
+    cur.execute("""
+        SELECT DISTINCT document_id FROM pages 
+        WHERE embedding IS NOT NULL
+    """)
+    for (doc_id,) in cur.fetchall():
+        cur.execute(
+            "SELECT embedding FROM pages WHERE document_id = ? AND embedding IS NOT NULL",
+            (doc_id,)
+        )
+        vecs = np.stack([
+            np.frombuffer(row[0], dtype=np.float32) 
+            for row in cur.fetchall()
+        ])
+        doc_vec = vecs.mean(axis=0)
+        cur.execute(
+            "UPDATE documents SET embedding = ? WHERE id = ?",
+            (doc_vec.astype(np.float32).tobytes(), doc_id)
+        )
+    conn.commit()
+    cur.close()
+        
+###########################################################################################################    
+
+
+db_file_name = "app_data.db"
+
+init_db(db_file_name)
+
+with sqlite3.connect(db_file_name) as conn:
+    scan_folder(conn, "data")
+    split_pdf_files(conn)
+    extract_text_from_stored_pages(conn)
+    populate_terms(conn)
+    populate_embeddings(conn)
