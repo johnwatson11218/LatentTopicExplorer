@@ -308,20 +308,79 @@ def cluster_points( conn ):
     for id, label in zip( ids,clusterer.labels_ ):
         cur.execute( " insert into document_categories ( document_id , category_id ) values (?,?)",(id,int(label),))
     cur.close()
-   
+      
+def label_categories(conn):
+    cur = conn.cursor()
     
+    # for each category, get all documents in it
+    cur.execute("SELECT DISTINCT category_id FROM document_categories WHERE category_id >= 0")
+    category_ids = [r[0] for r in cur.fetchall()]
+    
+    for category_id in category_ids:
+        # get all documents in this cluster
+        cur.execute("""
+            SELECT document_id FROM document_categories 
+            WHERE category_id = ?
+        """, (category_id,))
+        doc_ids = [r[0] for r in cur.fetchall()]
+        
+        if not doc_ids:
+            continue
+        
+        # sum TF-IDF across all docs in cluster
+        # IDF = ln(total_docs / docs_containing_term)
+        cur.execute("SELECT COUNT(*) FROM documents")
+        total_docs = cur.fetchone()[0]
+        
+        placeholders = ','.join('?' * len(doc_ids))
+        cur.execute(f"""
+            SELECT 
+                dt.term_id,
+                t.term,
+                SUM(dt.raw_count) as total_freq,
+                COUNT(DISTINCT dt.document_id) as doc_freq
+            FROM document_terms dt
+            JOIN terms t ON t.id = dt.term_id
+            WHERE dt.document_id IN ({placeholders})
+            GROUP BY dt.term_id, t.term
+        """, doc_ids)
+        
+        rows = cur.fetchall()
+        
+        # compute TF-IDF per term for this cluster
+        import math
+        scored = []
+        for term_id, term, total_freq, doc_freq in rows:
+            idf = math.log(total_docs / max(doc_freq, 1))
+            tfidf = total_freq * idf
+            scored.append((term, tfidf))
+        
+        # top 5 terms become the label
+        scored.sort(key=lambda x: x[1], reverse=True)
+        top_terms = [t[0] for t in scored[:5]]
+        label = '-'.join(top_terms)
+        
+        print(f"category {category_id}: {label}")
+        cur.execute(
+            "UPDATE categories SET label = ? WHERE id = ?",
+            (label, category_id)
+        )
+    
+    conn.commit()
+    cur.close()
+        
 ###########################################################################################################    
-
 
 db_file_name = "app_data.db"
 
 init_db(db_file_name)
 
 with sqlite3.connect(db_file_name) as conn:
-    # scan_folder(conn, "data")
-    # split_pdf_files(conn)
-    # extract_text_from_stored_pages(conn)
-    # populate_terms(conn)
-    # populate_embeddings(conn)
-    # reduce_dimensionality_umap(conn)
+    scan_folder(conn, "data")
+    split_pdf_files(conn)
+    extract_text_from_stored_pages(conn)
+    populate_terms(conn)
+    populate_embeddings(conn)
+    reduce_dimensionality_umap(conn)
     cluster_points( conn )
+    label_categories( conn )
