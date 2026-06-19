@@ -17,9 +17,6 @@ import numpy as np
 import umap
 import hdbscan
 
-
-
-
 def init_db(db_path: str = None ) -> sqlite3.Connection:
     """Open (or create) the SQLite database and set up tables."""
     db_file = Path(db_path)
@@ -72,10 +69,24 @@ def init_db(db_path: str = None ) -> sqlite3.Connection:
                     x real , 
                     y real 
                 )""")
+
+    cur.execute( """
+                create table if not exists categories 
+                ( 
+                    id integer not null, 
+                    label text
+                )""")
+
+
+    cur.execute( """
+                create table if not exists document_categories 
+                ( 
+                    document_id integer not null references documents( id), 
+                    category_id integer 
+                )""")
     
     conn.commit()
     print(f"✅ Database ready: {db_path} ({db_file.stat().st_size} bytes)")
-    
 
 def scan_folder(  conn = None, file_path : str = "data" ) -> None:
     print( f"starting scan file_path ={file_path}, conn {conn}")
@@ -123,7 +134,6 @@ def split_pdf_files( conn = None ):
             conn.commit()
        
     cur.close()
-    
   
 def extract_text_from_stored_pages( conn = None ):
     cur = conn.cursor()
@@ -143,7 +153,6 @@ def extract_text_from_stored_pages( conn = None ):
         except Exception as e:
             print(f"Exception {e}")
     cur.close()
-    
     
 def populate_terms(conn=None):
     print('starting populate_terms()')
@@ -208,7 +217,6 @@ def populate_terms(conn=None):
     cur.close()
     print('end populate_terms()')
 
-
 def populate_embeddings(conn):
     
     cur = conn.cursor()
@@ -252,7 +260,6 @@ def populate_embeddings(conn):
         )
     conn.commit()
     cur.close()
-    
         
 def reduce_dimensionality_umap(conn):
     # load all the embeddings from the documents table
@@ -272,14 +279,36 @@ def reduce_dimensionality_umap(conn):
         metric='cosine'
     )
     embedding_2d = reducer.fit_transform(vectors)
-    print(f"reduced shape: {embedding_2d.shape}")  # should be (33, 2)
-    # for id, data in zip ( ids , embedding_2d ):
-    #     print(f"{id} ... {data}")
+    print(f"reduced shape: {embedding_2d.shape}")  
     cur.execute( "delete from document_coordinates")
     for id, data in zip( ids, embedding_2d ):
         cur.execute("insert into document_coordinates ( document_id, x, y ) values ( ? , ? , ? )" , ( id, float(data[0]), float(data[1] ), ))
-        
+    cur.close()
 
+def cluster_points( conn ):
+    cur = conn.cursor()
+    
+    cur.execute( "select document_id, x, y from document_coordinates " )
+    rows = cur.fetchall()
+    
+    ids = [ r[0] for r in rows ]
+    points = [ ( r[1],r[2]) for r in rows ]
+    
+    
+    clusterer = hdbscan.HDBSCAN()
+    clusterer.fit( points )
+    
+    cur.execute( "delete from document_categories" )
+    cur.execute( "delete from categories" )
+    
+    for label_id in set(clusterer.labels_):
+        print( f"{label_id} of type {type(label_id)}")
+        cur.execute( "insert into categories ( id ) values ( ? ) ", (int(label_id),))
+        
+    for id, label in zip( ids,clusterer.labels_ ):
+        cur.execute( " insert into document_categories ( document_id , category_id ) values (?,?)",(id,int(label),))
+    cur.close()
+   
     
 ###########################################################################################################    
 
@@ -289,9 +318,10 @@ db_file_name = "app_data.db"
 init_db(db_file_name)
 
 with sqlite3.connect(db_file_name) as conn:
-    scan_folder(conn, "data")
-    split_pdf_files(conn)
-    extract_text_from_stored_pages(conn)
-    populate_terms(conn)
-    populate_embeddings(conn)
-    reduce_dimensionality_umap(conn)
+    # scan_folder(conn, "data")
+    # split_pdf_files(conn)
+    # extract_text_from_stored_pages(conn)
+    # populate_terms(conn)
+    # populate_embeddings(conn)
+    # reduce_dimensionality_umap(conn)
+    cluster_points( conn )
