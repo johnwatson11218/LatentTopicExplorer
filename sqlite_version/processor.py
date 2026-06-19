@@ -14,7 +14,11 @@ import io
 from sentence_transformers import SentenceTransformer
 import numpy as np
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
+import umap
+import hdbscan
+
+
+
 
 def init_db(db_path: str = None ) -> sqlite3.Connection:
     """Open (or create) the SQLite database and set up tables."""
@@ -60,6 +64,15 @@ def init_db(db_path: str = None ) -> sqlite3.Connection:
                     page_count integer, -- how many pages it appears on
                     unique( document_id , term_id )                
                 )""")
+    
+    cur.execute( """
+                create table if not exists document_coordinates 
+                ( 
+                    document_id integer not null references documents( id), 
+                    x real , 
+                    y real 
+                )""")
+    
     conn.commit()
     print(f"✅ Database ready: {db_path} ({db_file.stat().st_size} bytes)")
     
@@ -196,13 +209,8 @@ def populate_terms(conn=None):
     print('end populate_terms()')
 
 
-
-from sentence_transformers import SentenceTransformer
-import numpy as np
-
-
-
 def populate_embeddings(conn):
+    
     cur = conn.cursor()
     
     # 1. embed each page
@@ -211,7 +219,11 @@ def populate_embeddings(conn):
         WHERE extracted_text IS NOT NULL 
         AND embedding IS NULL
     """)
-    for page_id, text in cur.fetchall():
+    rows = cur.fetchall()
+    if len( rows ) > 0 : 
+        model = SentenceTransformer('all-MiniLM-L6-v2')    
+        
+    for page_id, text in rows:
         vec = model.encode(text, normalize_embeddings=True)
         cur.execute(
             "UPDATE pages SET embedding = ? WHERE id = ?",
@@ -240,7 +252,35 @@ def populate_embeddings(conn):
         )
     conn.commit()
     cur.close()
+    
         
+def reduce_dimensionality_umap(conn):
+    # load all the embeddings from the documents table
+    cur = conn.cursor()    
+    cur.execute( " select d.id, d.embedding from documents d where embedding is not null")
+    rows = cur.fetchall()
+    print( f"There are {len( rows )} documents to pass to umap ... ")
+    
+    ids = [r[0] for r in rows]
+    vectors = np.stack([np.frombuffer(r[1], dtype=np.float32) for r in rows])
+    print(f"matrix shape: {vectors.shape}")  # should be (33, 384)
+
+    reducer = umap.UMAP(
+        n_components=2,
+        n_neighbors=5,
+        min_dist=0.1,
+        metric='cosine'
+    )
+    embedding_2d = reducer.fit_transform(vectors)
+    print(f"reduced shape: {embedding_2d.shape}")  # should be (33, 2)
+    # for id, data in zip ( ids , embedding_2d ):
+    #     print(f"{id} ... {data}")
+    cur.execute( "delete from document_coordinates")
+    for id, data in zip( ids, embedding_2d ):
+        cur.execute("insert into document_coordinates ( document_id, x, y ) values ( ? , ? , ? )" , ( id, float(data[0]), float(data[1] ), ))
+        
+
+    
 ###########################################################################################################    
 
 
@@ -254,3 +294,4 @@ with sqlite3.connect(db_file_name) as conn:
     extract_text_from_stored_pages(conn)
     populate_terms(conn)
     populate_embeddings(conn)
+    reduce_dimensionality_umap(conn)
