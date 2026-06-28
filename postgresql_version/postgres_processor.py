@@ -121,8 +121,9 @@ def scan_folder(  conn = None, file_path : str = "data" ) -> None:
     print( f"starting scan file_path ={file_path}, conn {conn}")
     for root, dirs, files in os.walk(file_path):        
         #print( f"root = {root} len(dirs ) {len(dirs)} len(files) {len(files)}")
+        cur = conn.cursor()
         for filename in files:
-            cur = conn.cursor()
+            
             
             if filename.endswith(".pdf") and not filename.startswith("."):
                 try:
@@ -135,7 +136,8 @@ def scan_folder(  conn = None, file_path : str = "data" ) -> None:
                     conn.commit()
                 except Exception as e:
                     print( f"Got an error {e}")
-
+                    conn.rollback()
+        cur.close()
 
 def split_pdf_files( conn = None ):
     
@@ -292,7 +294,8 @@ def populate_embeddings(conn):
 
 def reduce_dimensionality_umap(conn):
     # load all the embeddings from the documents table
-    cur = conn.cursor()    
+    cur = conn.cursor()
+    register_vector(conn)      
     cur.execute( " select d.id, d.embedding from documents d where embedding is not null")
     rows = cur.fetchall()
     print( f"There are {len( rows )} documents to pass to umap ... ")
