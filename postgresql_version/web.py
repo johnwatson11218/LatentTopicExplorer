@@ -6,6 +6,8 @@ from functools import lru_cache
 
 app = Flask( __name__ ) 
 
+DATA_VERSION = 1
+
 def get_db_connection( 
     host: str = "192.168.86.242",
     port: int = 5432,
@@ -33,6 +35,9 @@ def hello_world():
 
 @lru_cache(maxsize=128)
 def get_documents( conn ):
+    return _get_documents( DATA_VERSION, conn )
+
+def _get_documents( version, conn ):
     cur = conn.cursor()
     cur.execute( 'select id, filename from documents order by id  ' )
     rows = cur.fetchall()
@@ -42,6 +47,9 @@ def get_documents( conn ):
 
 @lru_cache(maxsize=128)
 def get_topics_and_documents( conn ):
+    return _get_topics_and_documents( DATA_VERSION, conn )
+    
+def _get_topics_and_documents( version, conn ):
     cur = conn.cursor()
     cur.execute( """
                 select c.label, d.filename from categories c, document_categories dc, documents d
