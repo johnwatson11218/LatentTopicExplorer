@@ -11,11 +11,14 @@
     <main class="container">
        
         {% for k,v in topics_and_documents.items()%}
-            <h1>{{ k }}</h1><br />
-                <ul>{% for vv in v %}
-                    <li><a href='{{  vv }}'>{{vv}}</a> </li>
-                </ul>{% endfor %}
-            <hr />
+            <details name="topics">
+            <summary>{{ k }}</summary>
+                <ul>
+                {% for vv in v %}
+                    <li><a href='{{  vv }}'>{{vv}}</a> </li>                    
+                {% endfor %}            
+                </ul>
+            </details>
         {% endfor%}
 
 
