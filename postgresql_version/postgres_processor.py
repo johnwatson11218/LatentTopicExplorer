@@ -12,13 +12,15 @@ from nltk.corpus import stopwords
 
 from collections import defaultdict
 
+from functools import lru_cache
+
 from sentence_transformers import SentenceTransformer
 import numpy as np
 
+from psycopg2.extras import execute_values
+
 import umap
 import hdbscan
-
-
 
 def get_db_connection( 
     host: str = "192.168.86.242",
@@ -50,8 +52,7 @@ def init_db(
     cur.execute("""
         CREATE TABLE IF NOT EXISTS documents (
             id          SERIAL PRIMARY KEY,
-            filename    TEXT NOT NULL,
-            content     BYTEA,
+            filename    TEXT NOT NULL UNIQUE,            
             file_size   INTEGER,
             inserted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             embedding   vector(384)
@@ -62,7 +63,7 @@ def init_db(
         CREATE TABLE IF NOT EXISTS pages (
             id             SERIAL PRIMARY KEY,
             document_id    INTEGER REFERENCES documents(id),
-            content        BYTEA,
+            content bytea,
             extracted_text TEXT,
             page_number    INTEGER NOT NULL,
             inserted_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -111,11 +112,31 @@ def init_db(
         )
     """)
 
+
+    cur.execute( """
+                
+                CREATE TABLE if not exists pipeline_queue (
+                        id              SERIAL PRIMARY KEY,
+                        document_id     INTEGER NOT NULL REFERENCES documents(id),
+                        page_id         INTEGER REFERENCES pages(id),
+                        step            TEXT NOT NULL,         -- 'split', 'extract_text', 'embed', 'reduce', 'cluster'
+                        status          TEXT NOT NULL DEFAULT 'pending',  -- 'pending', 'processing', 'done', 'error'
+                        error_msg       TEXT,
+                        created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE (page_id, step)                 -- idempotent: can't enqueue same page+step twice
+                    )
+                """)
+    
+    cur.execute( """
+                    CREATE INDEX if not exists idx_queue_pending ON pipeline_queue (step, status) 
+                    WHERE status = 'pending'
+                """)
+    
     conn.commit()
     cur.close()
     print(f"✅ Database ready")
     return conn
-
 
 def scan_folder(  conn = None, file_path : str = "data" ) -> None:
     print( f"starting scan file_path ={file_path}, conn {conn}")
@@ -129,67 +150,168 @@ def scan_folder(  conn = None, file_path : str = "data" ) -> None:
                 try:
                     
                     path = os.path.join(root, filename)
-                    with open(path, "rb") as f:
-                        pdf_bytes = f.read()
+                    # with open(path, "rb") as f:
+                    #     pdf_bytes = f.read()
 
-                    cur.execute("insert into documents ( filename, content, file_size ) values ( %s,%s,%s )", (filename,pdf_bytes, len(pdf_bytes)) )
+                    cur.execute("insert into documents ( filename, file_size ) values ( %s,%s )  on conflict (filename) do nothing", (path, 0,  ) )
                     conn.commit()
                 except Exception as e:
                     print( f"Got an error {e}")
                     conn.rollback()
         cur.close()
 
-def split_pdf_files( conn = None ):
+def clean_text_for_postgres(text):
+    if not text: return ""
+    text = text.replace('\x00', '')
+    text = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', text)
+    return text.strip()
+
+def clip_to_byte_limit(s, byte_limit=1048575):
+    s_bytes = s.encode('utf-8')
+    if len(s_bytes) <= byte_limit:
+        return s
+    return s_bytes[:byte_limit].decode('utf-8', errors='ignore')
+
+def split_pdf_file_and_extract_text( document_id, conn  ):
     
-    cur = conn.cursor()
-    cur.execute( " select d.id from documents d where not exists ( select 1 from pages p where p.document_id = d.id ) order by d.id limit 10")
-    ids = cur.fetchall()
-    print( f"There are {len( ids )} documents to split_pdf_files ... ")
-    
-    for row in ids:
-        document_id = row[0]
+    try:
         print( f"processing document {document_id}")
-        sql = "select content from documents where id = %s "
+        cur = conn.cursor()
+        sql = "select filename from documents where id = %s "
         cur.execute( sql , (document_id,) )
-        blob = cur.fetchone()[0]
+        path = cur.fetchone()[0]
+    except Exception as e :
+        mark_error( conn, document_id , 'split' )
+        return 
 
-        reader = PdfReader( io.BytesIO( blob ))
-        for page_num in range(len(reader.pages)):
-            writer = PdfWriter()
-            writer.add_page(reader.pages[page_num])            
-            output_buffer = io.BytesIO()
-            writer.write( output_buffer )
-            page_blob = output_buffer.getvalue()
-            page_sql = "insert into pages ( document_id , content, page_number ) values ( %s,%s,%s )"
-            cur.execute(page_sql , (document_id , page_blob, page_num ))
-            output_buffer.close()
-            conn.commit()
-       
-    cur.close()
-
-
-
-def extract_text_from_stored_pages( conn = None ):
-    cur = conn.cursor()
-    cur.execute( "select id, content from pages where content is not null and extracted_text is null limit 1000 ") 
-    rows = cur.fetchall()
-    print(f"found {len(rows)} pages to attempt to extract text from")
-    for row in rows:
-        page_id, page_blob = row
-        try:            
-            reader = PdfReader( io.BytesIO( page_blob ))
-            page = reader.pages[0]
-            raw_text = page.extract_text(extraction_mode='layout')
-            update_cur = conn.cursor()
-            update_cur.execute( "update pages set extracted_text = %s where id = %s ", (raw_text, page_id))
-            conn.commit()
-            update_cur.close()
+    with open(path, "rb") as f:
+        blob = f.read()
+        print( f"The blob is length = {len( blob )}")
+        total_pages = 0
+        try:
+            reader = PdfReader( io.BytesIO( blob ))
+            total_pages = len( reader.pages )
         except Exception as e:
-            print(f"Exception {e}")
+            print( f"got an error opening file {document_id}")
+            return
+        raw_text  = "ERROR PARSING PAGE"
+        for page_num in range(total_pages):           
+            page = reader.pages[page_num]
+            try:
+                raw_text = page.extract_text(extraction_mode='layout')
+                raw_text = clean_text_for_postgres( raw_text )
+                raw_text = clip_to_byte_limit( raw_text )
+                
+                page_sql = "insert into pages ( document_id , extracted_text , page_number ) values ( %s,%s,%s )"
+                cur.execute(page_sql , (document_id , raw_text, page_num ))
+            except Exception as e :
+                print( f" error on doc {document_id} page_number {page_num} {e}")                
+            conn.commit()
+    mark_done(conn, document_id, 'split')
+
     cur.close()
 
 
 def populate_terms(conn=None):
+    print('starting populate_terms()')
+    nltk.download('stopwords', quiet=True)
+    nltk.download('punkt', quiet=True)
+
+    STOP_WORDS = set(stopwords.words('english'))
+    stemmer = PorterStemmer()
+
+    @lru_cache(maxsize=None)
+    def stem_cached(token: str) -> str:
+        # same input always stems the same way, so cache it - avoids
+        # re-stemming the same common words over and over across 420k pages
+        return stemmer.stem(token)
+
+    def clean_and_tokenize(text: str) -> list[str]:
+        tokens = re.findall(r'\b[a-z]{2,}\b', text.lower())
+        return [stem_cached(t) for t in tokens if t not in STOP_WORDS]
+
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT d.id FROM documents d
+        WHERE NOT EXISTS (
+            SELECT 1 FROM document_terms dt WHERE dt.document_id = d.id
+        )
+    """)
+    document_ids = [r[0] for r in cur.fetchall()]
+    print(f"There are {len(document_ids)} documents to process.")
+
+    # --- Pass 1: tokenize every doc locally, no DB writes yet ---
+    # This is the part that used to do one INSERT...RETURNING per term per doc
+    # (potentially 1M+ round trips to a remote host). Instead we build
+    # everything in memory first, then hit the DB in a handful of batched calls.
+    doc_term_stats = {}
+    all_terms = set()
+
+    for document_id in document_ids:
+        cur.execute("""
+            SELECT id, extracted_text FROM pages
+            WHERE extracted_text IS NOT NULL
+              AND document_id = %s
+            ORDER BY page_number
+        """, (document_id,))
+        pages = cur.fetchall()
+
+        term_stats: dict = defaultdict(lambda: {"count": 0, "pages": set()})
+        for page_id, text in pages:
+            for term in clean_and_tokenize(text):
+                term_stats[term]['count'] += 1
+                term_stats[term]['pages'].add(page_id)
+
+        doc_term_stats[document_id] = term_stats
+        all_terms.update(term_stats.keys())
+
+    print(f"Tokenized {len(document_ids)} documents, found {len(all_terms)} unique terms.")
+
+    # --- Pass 2: upsert every unique term ONCE, then pull the whole term->id map back in one query ---
+    if all_terms:
+        execute_values(
+            cur,
+            "INSERT INTO terms (term) VALUES %s ON CONFLICT (term) DO NOTHING",
+            [(t,) for t in all_terms],
+        )
+        conn.commit()
+
+    cur.execute("SELECT term, id FROM terms")
+    term_id_map = dict(cur.fetchall())
+
+    # --- Pass 3: bulk-insert document_terms rows, one round trip per document instead of one per term ---
+    for document_id, term_stats in doc_term_stats.items():
+        total_tokens = sum(s['count'] for s in term_stats.values())
+        rows = [
+            (
+                document_id,
+                term_id_map[term],
+                stats['count'],
+                stats['count'] / total_tokens if total_tokens else 0,
+                len(stats['pages']),
+            )
+            for term, stats in term_stats.items()
+        ]
+
+        if rows:
+            execute_values(
+                cur,
+                """
+                INSERT INTO document_terms (document_id, term_id, raw_count, tf, page_count)
+                VALUES %s
+                ON CONFLICT (document_id, term_id) DO UPDATE SET
+                    raw_count  = excluded.raw_count,
+                    tf         = excluded.tf,
+                    page_count = excluded.page_count
+                """,
+                rows,
+            )
+        conn.commit()
+
+    cur.close()
+    print('end populate_terms()')
+
+def populate_terms_old(conn=None):
     print('starting populate_terms()')
     nltk.download('stopwords', quiet=True)
     nltk.download('punkt', quiet=True)
@@ -260,37 +382,31 @@ def populate_terms(conn=None):
     cur.close()
     print('end populate_terms()')
 
+globalModel = None
+def getLLModel():
+    global globalModel
+    if globalModel is None:
+        globalModel = SentenceTransformer( 'all-MiniLM-L6-v2')
+    return globalModel
 
-
-def populate_embeddings(conn):
-    register_vector(conn)
+def embed_single_page( page_id, conn ):
+    register_vector( conn)
     cur = conn.cursor()
-    
-    # 1. embed each page
-    cur.execute(""" SELECT id, extracted_text FROM pages WHERE extracted_text IS NOT NULL  AND embedding IS NULL limit 5000""")
+    cur.execute( "select extracted_text from pages where id = %s ", ( page_id, ))
     rows = cur.fetchall()
-    if len( rows ) > 0 : 
-        model = SentenceTransformer('all-MiniLM-L6-v2')    
-        
-    for page_id, text in rows:
-        vec = model.encode(text, normalize_embeddings=True)
-        cur.execute( "UPDATE pages SET embedding = %s WHERE id = %s", (vec.astype(np.float32), page_id)     )
-    conn.commit()
+    if len( rows ) > 0:
+        model = getLLModel()
 
-    # # 2. average page embeddings up to document level
-    # cur.execute(""" SELECT DISTINCT document_id FROM pages        WHERE embedding IS NOT NULL """)
-    # for (doc_id,) in cur.fetchall():
-    #     cur.execute(            "SELECT embedding FROM pages WHERE document_id = ? AND embedding IS NOT NULL",(doc_id,))
-    #     vecs = np.stack([            np.frombuffer(row[0], dtype=np.float32)             for row in cur.fetchall()        ])
-    #     doc_vec = vecs.mean(axis=0)
-    #     cur.execute( "UPDATE documents SET embedding = %s WHERE id = %s",   (doc_vec.astype(np.float32), doc_id))
-    # conn.commit()
+    for  (text,) in rows:
+        vec = model.encode( text, normalize_embeddings=True )
+        #print( f"embed single page {page_id} text {text} of length {len(text)} vec is {vec.shape}" )
+        cur.execute( "update pages set embedding = %s where id = %s ", ( vec.astype( np.float32), page_id ))
+    mark_done(conn, page_id, 'embed')
+    conn.commit()            
     """
     update documents as d set embedding  = ps.embedding from (select document_id as document_id ,   avg( embedding  ) as embedding from pages p group by p.document_id) as ps( document_id, embedding ) where id = ps.document_id  
     """
-    
     cur.close()
-
 
 def reduce_dimensionality_umap(conn):
     # load all the embeddings from the documents table
@@ -343,7 +459,6 @@ def cluster_points( conn ):
     conn.commit()
     cur.close()
     
-
 def label_categories(conn):
     cur = conn.cursor()
     
@@ -403,23 +518,127 @@ def label_categories(conn):
     
     conn.commit()
     cur.close()
+
 #####################################################################
 
+def claim_batch(conn, step: str, batch_size: int = 5 ):
+    """Atomically claim a batch of work items."""
+    cur = conn.cursor()
+    col = 'page_id'
+    if step == 'split':
+        col =  'document_id'        
+    cur.execute(f"""
+        UPDATE pipeline_queue
+        SET status = 'processing', updated_at = NOW()
+        WHERE id IN (
+            SELECT id FROM pipeline_queue
+            WHERE step = %s AND status = 'pending'
+            ORDER BY id
+            LIMIT %s
+            FOR UPDATE SKIP LOCKED          -- critical: safe for multiple workers
+        )
+        RETURNING {col}
+    """, (step, batch_size))
+    rows = cur.fetchall()
+    conn.commit()
+    return [r[0] for r in rows]
 
+def mark_done(conn, page_id: int, step: str):
+    cur = conn.cursor()
+    col = 'page_id'
+    if step == 'split':
+        col = 'document_id'
+    cur.execute(f"""
+        UPDATE pipeline_queue 
+        SET status = 'done', updated_at = NOW()
+        WHERE {col} = %s AND step = %s
+    """, (page_id, step))
+    conn.commit()
+
+def mark_error(conn, id: int, step: str, error: str):
+    cur = conn.cursor()
+    col = 'page_id'
+    if step == 'split':
+        col = 'document_id'
+    cur.execute(f" UPDATE pipeline_queue    SET status = 'error', error_msg = %s, updated_at = NOW()     WHERE {col} = %s AND step = %s ", (error, id, step))
+    conn.commit()
+
+def enqueue_splits(conn):
+    """Documents with no pages yet need splitting."""
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO pipeline_queue (document_id, step)
+        SELECT d.id, 'split'
+        FROM documents d
+        WHERE NOT EXISTS (SELECT 1 FROM pages p WHERE p.document_id = d.id)
+        ON CONFLICT (page_id, step) DO NOTHING   -- idempotent
+    """)
+    conn.commit()
+
+def enqueue_extractions(conn):
+    """Pages with no extracted text yet."""
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO pipeline_queue (document_id, page_id, step)
+        SELECT p.document_id, p.id, 'extract_text'
+        FROM pages p
+        WHERE p.extracted_text IS NULL
+        ON CONFLICT (page_id, step) DO NOTHING
+    """)
+    conn.commit()
+
+def enqueue_embeddings(conn):
+    """Pages with text but no embedding."""
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO pipeline_queue (document_id, page_id, step)
+        SELECT p.document_id, p.id, 'embed'
+        FROM pages p
+        WHERE p.extracted_text IS NOT NULL
+        AND p.embedding IS NULL
+        ON CONFLICT (page_id, step) DO NOTHING
+    """)
+    conn.commit()
+
+#####################################################################
 
 init_db()
 
+# for i in range( 5 ):
+#     conn = get_db_connection()
+#     #scan_folder( conn, "static/books/" ) 
+#     enqueue_splits( conn )
+    
+#     enqueue_embeddings( conn )
+#     # process each batch type in order
+#     rows = claim_batch(conn, 'split', 10 )
+#     [ split_pdf_file_and_extract_text( document_id, conn ) for document_id in rows  ]
+    
+#     rows = claim_batch( conn , 'embed', 5000 )
+#     print( f"number for embed text {len( rows )}")
+#     [ embed_single_page( page_id, conn ) for page_id in rows ]
+    
+#     conn.close()
+    
+print( f"done with pdf import steps ")
+done_importing = True
 
-conn = get_db_connection()
-
-# scan_folder( conn, "data" )
-# split_pdf_files( conn )
-# extract_text_from_stored_pages( conn )
+if done_importing == True:
+    conn = get_db_connection()
+    print( "done importing, running corpus level steps. terms, reduce dimensionality, cluster, label etc. ")
+    print( "calling populate_terms()")
+    populate_terms( conn) 
+    print( "calling reduce_dimensionality_umap()")
+    reduce_dimensionality_umap( conn )
+    print( "calling cluster_points()")
+    cluster_points( conn )
+    print( "calling label_categories()")
+    label_categories( conn )
+    conn.close()
+    
+print( f"Done with all steps. ")
 # populate_terms( conn )
 # populate_embeddings( conn )
 # reduce_dimensionality_umap(conn)
 # cluster_points( conn )
-label_categories( conn )
-
-#     cluster_points( conn )
-#     label_categories( conn )
+#label_categories( conn )
