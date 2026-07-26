@@ -5,11 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Flask App</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@latest/css/pico.min.css">
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+    <script lang="js">
+
+        document.addEventListener( 'DOMContentLoaded', function(){
+            //const serverData = { x : [ 1, 2, 3] , y : [ 7, 8, 9]}
+            const serverData = {{ serverData | safe }};
+            Plotly.newPlot( 'chartDiv', [{
+                x : serverData.x,
+                y : serverData.y,
+                mode: 'markers',
+                type: 'scatter'
+            }])
+        });
+    </script>
 </head>
 <body>
     <nav> ... </nav>
     <main class="container">
-       
+        <div id="chartDiv"></div>
         {% for k,v in topics_and_documents.items()%}
             <details name="topics">
             <summary>{{ k }}</summary>
