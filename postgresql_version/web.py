@@ -4,11 +4,9 @@ from psycopg2.extras import RealDictCursor
 
 from collections import defaultdict
 from flask import Flask, render_template
-from functools import lru_cache
-
+#from functools import lru_cache
+import math
 app = Flask( __name__ ) 
-
-DATA_VERSION = 1
 
 def get_db_connection( 
     host: str = "192.168.86.242",
@@ -29,18 +27,15 @@ def get_db_connection(
 @app.route( "/" )
 def hello_world():
     conn = get_db_connection()
-    data_items = get_documents( conn )
+
     topics_and_documents = get_topics_and_documents( conn )
     serverData = get_document_coords( conn )
     conn.close()
-    return render_template( 'index.html', data_items = data_items, topics_and_documents = topics_and_documents,  serverData = serverData )
+    return render_template( 'index.html',  topics_and_documents = topics_and_documents,  serverData = serverData )
 
 
-@lru_cache(maxsize=128)
+
 def get_documents( conn ):
-    return _get_documents( DATA_VERSION, conn )
-
-def _get_documents( version, conn ):
     cur = conn.cursor()
     cur.execute( 'select id, filename from documents order by id  ' )
     rows = cur.fetchall()
@@ -48,11 +43,8 @@ def _get_documents( version, conn ):
     cur.close()
     return data_items
 
-@lru_cache(maxsize=128)
-def get_topics_and_documents( conn ):
-    return _get_topics_and_documents( DATA_VERSION, conn )
     
-def _get_topics_and_documents( version, conn ):
+def get_topics_and_documents( conn ):
     cur = conn.cursor()
     cur.execute( """
                 select c.label, d.filename from categories c, document_categories dc, documents d
@@ -64,16 +56,11 @@ def _get_topics_and_documents( version, conn ):
     [ topics_and_documents[r[0]].append( r[1]) for r in rows ]        
     cur.close()
     return topics_and_documents
-    
 
-@lru_cache(maxsize=128)
-def get_document_coords( conn):
-    return _get_document_coords(DATA_VERSION, conn)
-
-def _get_document_coords( version : int, conn ):
+def get_document_coords( conn ):
     try:
         #conn = get_db_connection()
-        topic_data = get_topics_and_documents( conn )
+        topic_data = get_topics_and_documents( conn ) # this is map<String<Label>>, List<String<Filename>> . 
 
         #colors = get_topic_colors(len( set( topic_data.values())))
         # colors_old = [
@@ -85,18 +72,16 @@ def _get_document_coords( version : int, conn ):
 
         plot_data = {
             "x": [], "y": [], "labels": [], 
-            "originalSizes": [], "sizes": [], "colors": [], "ids" : []
+            "o_sizes": [], "sizes": [], "colors": [], "ids" : []
         }
 
         # 2. Fetch the document coordinates
         query = """
-            SELECT 
-                d.id AS document_id, 
-                SUBSTRING(d.filename FROM 1 FOR 20) AS title, 
-                x, 
-                y --, LENGTH(d.raw_text) AS size 
-            FROM document_coordinates dc
-            JOIN documents d ON d.id = dc.document_id
+            SELECT  d.id AS document_id, SUBSTRING(d.filename FROM 1 FOR 20) AS title, x, y , d.size AS size, 
+            dcat.color as color             
+            FROM document_coordinates dc, documents d, document_categories dcat
+            where d.id = dc.document_id and d.logically_deleted is false
+            and dcat.document_id = d.id
         """
 
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -113,32 +98,16 @@ def _get_document_coords( version : int, conn ):
             plot_data['y'].append(row['y'])
             plot_data['labels'].append(row['title'])
             plot_data['ids'].append( doc_id )
-            #size_val = row['size'] if row['size'] else 0
-            #plot_data['originalSizes'].append(size_val)
 
-            # Match color based on the topic_data dict
-            topic_id = topic_data.get(doc_id, 0)
-            #color_idx = topic_id % len(colors)
-            #plot_data['colors'].append(colors[color_idx])
+            plot_data['o_sizes'].append( row['size'])            
+            plot_data['colors'].append( row['color'])
 
-        # 4. Normalize Sizes (The Math)
-        # Replicating JS logic: scale = (max - min) / (50 - 10)
-        #orig_sizes = plot_data['originalSizes']
-        # if orig_sizes:
-        #     min_s, max_s = min(orig_sizes), max(orig_sizes)
-        #     range_s = max_s - min_s
-            
-        #     if range_s == 0:
-        #         plot_data['sizes'] = [20] * len(orig_sizes)
-        #     else:
-        #         scale = range_s / 40
-        #         for s in orig_sizes:
-        #             # formula: 5 + (size / scale)
-        #             plot_data['sizes'].append(5 + (s / scale))
-                    
+        ( min_size, max_size ) = ( min(plot_data['o_sizes'] ), max( plot_data['o_sizes']) )
+        scale_factor = ( max_size - min_size  ) / 100        
+        plot_data['sizes'] = [ ( math.sqrt(o) / 100 )  for o in plot_data['o_sizes']]
                     
         cur.close()
-        conn.close()                    
+        #conn.close()                    
         return plot_data
 
     except Exception as e:

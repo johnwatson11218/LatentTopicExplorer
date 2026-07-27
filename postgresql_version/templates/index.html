@@ -14,8 +14,15 @@
             Plotly.newPlot( 'chartDiv', [{
                 x : serverData.x,
                 y : serverData.y,
+                //mode: 'markers+text',
                 mode: 'markers',
-                type: 'scatter'
+                type: 'scatter', 
+                text: serverData.labels, 
+                marker: {
+                    size: serverData.sizes,
+                    opacity: 0.50,
+                    color: serverData.colors
+                }
             }])
         });
     </script>
