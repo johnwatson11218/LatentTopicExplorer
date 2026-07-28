@@ -211,7 +211,6 @@ def split_pdf_file_and_extract_text( document_id, conn  ):
 
     cur.close()
 
-
 def populate_terms(conn=None):
     print('starting populate_terms()')
     nltk.download('stopwords', quiet=True)
@@ -355,10 +354,7 @@ def populate_terms_old(conn=None):
         doc_cursor = conn.cursor()
         for term, stats in term_stats.items():
             """
-            doc_cursor.execute(
-    'INSERT INTO terms (term) VALUES (%s) ON CONFLICT (term) DO UPDATE SET term = EXCLUDED.term RETURNING id',
-    (term,)
-)
+            doc_cursor.execute( 'INSERT INTO terms (term) VALUES (%s) ON CONFLICT (term) DO UPDATE SET term = EXCLUDED.term RETURNING id', (term,))
             """
             
             #doc_cursor.execute('INSERT INTO terms (term) VALUES (%s) ON CONFLICT(term) DO UPDATE SET term=term RETURNING id', (term,) )
@@ -482,6 +478,27 @@ def embed_single_page( page_id, conn ):
             
             
             alter table documents add column if not exists logically_deleted bool default false;
+            
+            
+            
+            
+            
+            #next ideas for python code session 
+            
+            import math
+
+            sizes = plot_data['o_sizes']
+            log_sizes = [math.log1p(s) for s in sizes]
+
+            min_log, max_log = min(log_sizes), max(log_sizes)
+            log_range = max_log - min_log or 1  # avoid divide-by-zero if all sizes are equal
+
+            MIN_PX, MAX_PX = 4, 40  # floor so nothing is invisible, ceiling so nothing swamps the plot
+
+            plot_data['sizes'] = [
+                MIN_PX + (MAX_PX - MIN_PX) * (ls - min_log) / log_range
+                for ls in log_sizes
+            ]
 
     """
     cur.close()
