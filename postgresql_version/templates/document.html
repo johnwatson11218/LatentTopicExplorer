@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Flask App</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@latest/css/pico.min.css">
+</head>
+<html>
+    <body>
+
+
+
+            <nav><a href="/">/Home</a> </nav>
+    <main class="container">
+        <table>
+            <thead><tr><td>ID</td><td>Filename</td><td>Size</td></tr></thead>
+            <tr>
+                <td>{{ document_data[0] }}</td>
+                <td><a href="/{{ document_data[1] }}">{{ document_data[1] }}</a></td>
+                <td>{{ document_data[2] }}</td>
+            </tr>
+        </table>
+        
+
+    </main>
+
+    </body>
+</html>

@@ -3,7 +3,7 @@ from psycopg2.extensions import connection as PGConnection
 from psycopg2.extras import RealDictCursor
 
 from collections import defaultdict
-from flask import Flask, render_template
+from flask import Flask, render_template, url_for
 #from functools import lru_cache
 import math
 app = Flask( __name__ ) 
@@ -25,7 +25,7 @@ def get_db_connection(
     )
 
 @app.route( "/" )
-def hello_world():
+def index():
     conn = get_db_connection()
 
     topics_and_documents = get_topics_and_documents( conn )
@@ -33,7 +33,19 @@ def hello_world():
     conn.close()
     return render_template( 'index.html',  topics_and_documents = topics_and_documents,  serverData = serverData )
 
+@app.route( "/document/<id>")
+def document( id ):
+    conn = get_db_connection()
+    document_data = get_document_data( conn , id )
+    conn.close()
+    return render_template( 'document.html', document_data = document_data[0] )
 
+def get_document_data( conn , id ):
+    cur = conn.cursor()
+    cur.execute( 'select id, filename, size from documents d where d.id = %s', ( id, ))
+    rows = cur.fetchall()    
+    cur.close()
+    return [ ( r[0], r[1], r[2] ) for r in rows ]
 
 def get_documents( conn ):
     cur = conn.cursor()
@@ -43,39 +55,30 @@ def get_documents( conn ):
     cur.close()
     return data_items
 
-    
 def get_topics_and_documents( conn ):
     cur = conn.cursor()
     cur.execute( """
-                select c.label, d.filename from categories c, document_categories dc, documents d
+                select c.label, d.filename, d.id from categories c, document_categories dc, documents d
                     where c.id = dc.category_id and dc.document_id = d.id
                     order by 1 
                 """)
     rows = cur.fetchall()
-    topics_and_documents = defaultdict( list )
-    [ topics_and_documents[r[0]].append( r[1]) for r in rows ]        
     cur.close()
+    
+    topics_and_documents = defaultdict( list )
+    [ topics_and_documents[r[0]].append( f"<a href='{url_for( 'document', id=r[2])}'>{r[1]}</a>" ) for r in rows ]
+    
     return topics_and_documents
 
 def get_document_coords( conn ):
     try:
-        #conn = get_db_connection()
-        topic_data = get_topics_and_documents( conn ) # this is map<String<Label>>, List<String<Filename>> . 
-
-        #colors = get_topic_colors(len( set( topic_data.values())))
-        # colors_old = [
-        #     'AliceBlue', 'Azure', 'Bisque', 'CadetBlue', 'BurlyWood', 'Coral', 'DarkCyan',
-        #     'DarkKhaki', 'DarkOrange', 'DarkSlateBlue', 'Yellow', 'Violet', 'SteelBlue', 
-        #     'Tan', 'Teal', 'SpringGreen', 'SlateGrey', 'Thistle', 'Tomato', 'Salmon', 
-        #     'SandyBrown', 'SeaGreen'
-        # ]
-
+        # this is map<String<Label>>, List<String<Filename>> . 
+        topic_data = get_topics_and_documents( conn ) 
         plot_data = {
             "x": [], "y": [], "labels": [], 
             "o_sizes": [], "sizes": [], "colors": [], "ids" : []
         }
 
-        # 2. Fetch the document coordinates
         query = """
             SELECT  d.id AS document_id, SUBSTRING(d.filename FROM 1 FOR 20) AS title, x, y , d.size AS size, 
             dcat.color as color             
@@ -88,10 +91,6 @@ def get_document_coords( conn ):
             cur.execute(query)
             rows = cur.fetchall()
 
-        if not rows:
-            return plot_data
-
-        # 3. Process data & assign colors
         for row in rows:
             doc_id = row['document_id']
             plot_data['x'].append(row['x'])
@@ -107,7 +106,7 @@ def get_document_coords( conn ):
         plot_data['sizes'] = [ ( math.sqrt(o) / 100 )  for o in plot_data['o_sizes']]
                     
         cur.close()
-        #conn.close()                    
+
         return plot_data
 
     except Exception as e:

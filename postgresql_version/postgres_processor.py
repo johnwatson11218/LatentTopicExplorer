@@ -417,62 +417,10 @@ def embed_single_page( page_id, conn ):
 
     
     
-                        CREATE OR REPLACE FUNCTION interpolate_hex_color(
-                                start_r int, start_g int, start_b int,
-                                end_r int, end_g int, end_b int,
-                                pct numeric
-                            ) RETURNS text AS $$
-                            DECLARE
-                                r int; g int; b int;
-                            BEGIN
-                                -- Blend the channels lineally based on the percentage
-                                r := ROUND(start_r + (end_r - start_r) * pct);
-                                g := ROUND(start_g + (end_g - start_g) * pct);
-                                b := ROUND(start_b + (end_b - start_b) * pct);
-                                
-                                -- Format back to standard #RRGGBB HTML format
-                                RETURN '#' || 
-                                    to_hex((r >> 4) & 15) || to_hex(r & 15) ||
-                                    to_hex((g >> 4) & 15) || to_hex(g & 15) ||
-                                    to_hex((b >> 4) & 15) || to_hex(b & 15);
-                            END;
-                            $$ LANGUAGE plpgsql IMMUTABLE;
                             
                             alter table document_categories add column if not exists color varchar;
                             
-                            
-                            
-                                            WITH category_ranks AS (
-                                            SELECT 
-                                                category_id,
-                                                -- 1. Rank the categories 1 to N
-                                                DENSE_RANK() OVER (ORDER BY category_id) AS rnk
-                                            FROM document_categories
-                                            ),
-                                            color_map AS (
-                                            SELECT 
-                                                category_id,
-                                                -- 2. Prevent division by zero if there's only 1 category, then find the percentage
-                                                CASE 
-                                                WHEN MAX(rnk) OVER () = 1 THEN 0.0
-                                                ELSE (rnk - 1)::numeric / (MAX(rnk) OVER () - 1)::numeric
-                                                END AS pct
-                                            FROM category_ranks
-                                            GROUP BY category_id, rnk
-                                            )
-                                            -- select * from color_map;
-                                            -- 3. Bulk update the dynamic table
-                                            UPDATE document_categories t
-                                            SET color = interpolate_hex_color(
-                                                0, 128, 128,    -- Start RGB: Teal (#008080)
-                                                255, 127, 80,   -- End RGB: Coral (#FF7F50)
-                                                cm.pct
-                                            )
-                                            FROM color_map cm
-                                            WHERE t.category_id = cm.category_id;
-
-
-
+                                                
             -- need a way to manually remove docs from main collection. 
             -- logical delete, new column, default false etc. 
             
