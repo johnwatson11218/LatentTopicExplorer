@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Flask App</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@latest/css/pico.min.css">
+        <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+    <script lang="js">
+
+        document.addEventListener( 'DOMContentLoaded', function(){
+
+            const serverData = {{ serverData | safe }};
+            Plotly.newPlot( 'chartDiv', [{
+                x : serverData.x,
+                y : serverData.y,
+                //mode: 'markers+text',
+                mode: 'markers',
+                type: 'scatter', 
+                text: serverData.labels, 
+                marker: {
+                    size: serverData.sizes,
+                    opacity: 0.50,
+                    color: serverData.colors
+                }
+            }])
+        });
+    </script>
+
+</head>
+<html>
+
+<body>
+
+    <nav><a href="/">/Home</a> </nav>
+
+    <main class="container">
+        <div id="chartDiv"></div>
+
+        <ul>
+            {% for td in topic_data %}
+                <li>{{ td | safe }}</li>
+            {% endfor %}
+        </ul>
+
+
+    </main>
+
+</body>
+
+</html>

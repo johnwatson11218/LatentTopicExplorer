@@ -9,7 +9,7 @@ import math
 app = Flask( __name__ ) 
 
 def get_db_connection( 
-    host: str = "192.168.86.242",
+    host: str = "rp",
     port: int = 5432,
     dbname: str = "second_brain",
     user: str = "postgres",
@@ -40,6 +40,23 @@ def document( id ):
     conn.close()
     return render_template( 'document.html', document_data = document_data[0] )
 
+@app.route( "/topic/<id>")
+def topic( id ):
+    conn = get_db_connection()
+    topic_data = get_topic_data( conn, id )
+    serverData = get_document_coords( conn, id )
+    conn.close()
+    return render_template( 'topic.html', topic_data = topic_data, serverData = serverData )
+
+
+def get_topic_data( conn, id ):
+    cur = conn.cursor()
+    cur.execute( """select d.id, d.filename from document_categories dc, documents d 
+                    where dc.document_id = d.id and dc.category_id = %s""", ( id , ))
+    rows = cur.fetchall()
+    cur.close()
+    return [ f"<a href='{url_for( 'document', id=r[0])}'>{r[1]}</a>" for r in rows ]   
+ 
 def get_document_data( conn , id ):
     cur = conn.cursor()
     cur.execute( 'select id, filename, size from documents d where d.id = %s', ( id, ))
@@ -58,19 +75,19 @@ def get_documents( conn ):
 def get_topics_and_documents( conn ):
     cur = conn.cursor()
     cur.execute( """
-                select c.label, d.filename, d.id from categories c, document_categories dc, documents d
+                select c.label, d.filename, d.id, dc.category_id from categories c, document_categories dc, documents d
                     where c.id = dc.category_id and dc.document_id = d.id
                     order by 1 
                 """)
     rows = cur.fetchall()
     cur.close()
     
-    topics_and_documents = defaultdict( list )
-    [ topics_and_documents[r[0]].append( f"<a href='{url_for( 'document', id=r[2])}'>{r[1]}</a>" ) for r in rows ]
+    topics_and_documents = defaultdict( list )    
+    [ topics_and_documents[f"<a href='{url_for( 'topic', id=r[3])}'>{r[0]}</a>"].append( f"<a href='{url_for( 'document', id=r[2])}'>{r[1]}</a>" ) for r in rows ]
     
     return topics_and_documents
 
-def get_document_coords( conn ):
+def get_document_coords( conn, topic_id = None ):
     try:
         # this is map<String<Label>>, List<String<Filename>> . 
         topic_data = get_topics_and_documents( conn ) 
@@ -84,8 +101,10 @@ def get_document_coords( conn ):
             dcat.color as color             
             FROM document_coordinates dc, documents d, document_categories dcat
             where d.id = dc.document_id and d.logically_deleted is false
-            and dcat.document_id = d.id
+            and dcat.document_id = d.id            
         """
+        if topic_id is not None:
+            query += f" and dcat.category_id = {topic_id}"
 
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(query)
