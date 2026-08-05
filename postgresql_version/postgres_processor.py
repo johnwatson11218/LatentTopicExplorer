@@ -23,7 +23,7 @@ import umap
 import hdbscan
 
 def get_db_connection( 
-    host: str = "192.168.86.242",
+    host: str = 'rp',
     port: int = 5432,
     dbname: str = "second_brain",
     user: str = "postgres",
@@ -647,9 +647,13 @@ def enqueue_embeddings(conn):
 
 init_db()
 
+# conn = get_db_connection()
+# scan_folder( conn, "static/books/" ) 
+# conn.close()
+
 # for i in range( 5 ):
 #     conn = get_db_connection()
-#     #scan_folder( conn, "static/books/" ) 
+#     #
 #     enqueue_splits( conn )
     
 #     enqueue_embeddings( conn )
