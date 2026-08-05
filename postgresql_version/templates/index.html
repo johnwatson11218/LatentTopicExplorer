@@ -31,16 +31,19 @@
     <nav> ... </nav>
     <main class="container">
         <div id="chartDiv"></div>
-        {% for k,v in topics_and_documents.items()%}
-            <details name="topics">
-            <summary>{{ k }}</summary>
-                <ul>
-                {% for vv in v %}
-                    <li>{{  vv | safe }}</li>                    
-                {% endfor %}            
-                </ul>
-            </details>
-        {% endfor%}
+
+        <table border="1">
+            {% for k,v in topics_and_documents.items()%}
+                <tr><td>{{ k | safe }}</td></tr>
+                <tr><td>
+                    <ol>
+                    {% for vv in v %}
+                        <li>{{  vv | safe }}</li>
+                    {% endfor %}                            
+                   </ol> 
+                </td></tr>
+            {% endfor%}
+        </table>
 
 
     </main>
