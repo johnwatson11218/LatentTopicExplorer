@@ -192,7 +192,7 @@ def split_pdf_file_and_extract_text( document_id, conn  ):
             reader = PdfReader( io.BytesIO( blob ))
             total_pages = len( reader.pages )
         except Exception as e:
-            print( f"got an error opening file {document_id}")
+            mark_error( conn, document_id , 'split' )
             return
         raw_text  = "ERROR PARSING PAGE"
         for page_num in range(total_pages):           
@@ -205,7 +205,8 @@ def split_pdf_file_and_extract_text( document_id, conn  ):
                 page_sql = "insert into pages ( document_id , extracted_text , page_number ) values ( %s,%s,%s )"
                 cur.execute(page_sql , (document_id , raw_text, page_num ))
             except Exception as e :
-                print( f" error on doc {document_id} page_number {page_num} {e}")                
+                mark_error( conn, document_id , 'split' )
+                return
             conn.commit()
     mark_done(conn, document_id, 'split')
 

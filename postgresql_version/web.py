@@ -102,12 +102,15 @@ def get_document_coords( conn, topic_id = None ):
             FROM document_coordinates dc, documents d, document_categories dcat
             where d.id = dc.document_id and d.logically_deleted is false
             and dcat.document_id = d.id            
-        """
-        if topic_id is not None:
-            query += f" and dcat.category_id = {topic_id}"
-
+        """            
+        
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute(query)
+            if topic_id is None:
+                cur.execute(query)
+            else:
+                query += f" and dcat.category_id = %s"
+                cur.execute( query, ( topic_id, ))
+                
             rows = cur.fetchall()
 
         for row in rows:
