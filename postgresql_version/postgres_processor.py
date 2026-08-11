@@ -1,7 +1,7 @@
 import psycopg2
 from psycopg2.extensions import connection as PGConnection
 from pgvector.psycopg2 import register_vector
-
+from psycopg2.extras import execute_values
 import os
 from pypdf import PdfReader
 import io
@@ -9,16 +9,10 @@ import re
 import nltk
 from nltk.stem import PorterStemmer
 from nltk.corpus import stopwords
-
 from collections import defaultdict
-
 from functools import lru_cache
-
 from sentence_transformers import SentenceTransformer
 import numpy as np
-
-from psycopg2.extras import execute_values
-
 import umap
 import hdbscan
 
