@@ -3,7 +3,7 @@ from psycopg2.extensions import connection as PGConnection
 from pgvector.psycopg2 import register_vector
 
 import os
-from pypdf import PdfReader, PdfWriter
+from pypdf import PdfReader
 import io
 import re
 import nltk

@@ -6,6 +6,7 @@ from collections import defaultdict
 from flask import Flask, render_template, url_for
 #from functools import lru_cache
 import math
+
 app = Flask( __name__ ) 
 
 def get_db_connection( 
