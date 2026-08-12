@@ -23,7 +23,29 @@
                     opacity: 0.50,
                     color: serverData.colors
                 }
-            }])
+            }]);
+
+            var plotDiv = document.getElementById('chartDiv');
+            plotDiv.on('plotly_click', function (data) {
+
+            // data.points contains an array of points clicked (usually one)
+            if (data.points.length > 0) {
+                var clickedPoint = data.points[0];
+                if (!clickedPoint) return;
+
+                var xValue = clickedPoint.x;
+                if (!xValue) return;
+
+                var yValue = clickedPoint.y;
+                if (!yValue) return;
+
+                var pointIndex = clickedPoint.pointIndex; // Index of the point in the data array
+
+
+                window.location.href = '/document/' + serverData.ids[pointIndex];
+            }
+        });
+
         });
     </script>
 </head>
