@@ -98,7 +98,7 @@ def get_document_coords( conn, topic_id = None ):
         }
 
         query = """
-            SELECT  d.id AS document_id, SUBSTRING(d.filename FROM 1 FOR 20) AS title, x, y , d.size AS size, 
+            SELECT  d.id AS document_id, d.filename AS title, x, y , d.size AS size, 
             dcat.color as color             
             FROM document_coordinates dc, documents d, document_categories dcat
             where d.id = dc.document_id and d.logically_deleted is false
@@ -118,7 +118,7 @@ def get_document_coords( conn, topic_id = None ):
             doc_id = row['document_id']
             plot_data['x'].append(row['x'])
             plot_data['y'].append(row['y'])
-            plot_data['labels'].append(row['title'])
+            plot_data['labels'].append(row['title'].split('/')[-1].split('\\')[-1])
             plot_data['ids'].append( doc_id )
 
             plot_data['o_sizes'].append( row['size'])            
