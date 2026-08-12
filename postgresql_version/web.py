@@ -60,10 +60,10 @@ def get_topic_data( conn, id ):
  
 def get_document_data( conn , id ):
     cur = conn.cursor()
-    cur.execute( 'select id, filename, size from documents d where d.id = %s', ( id, ))
+    cur.execute( 'select d.id, d.filename, d.size, c.label, c.id from documents d, document_categories dc, categories c where d.id = dc.document_id and dc.category_id = c.id and  d.id = %s', ( id, ))
     rows = cur.fetchall()    
     cur.close()
-    return [ ( r[0], r[1], r[2] ) for r in rows ]
+    return [ ( r[0], r[1], r[2], r[3] , r[4]) for r in rows ]
 
 def get_documents( conn ):
     cur = conn.cursor()
