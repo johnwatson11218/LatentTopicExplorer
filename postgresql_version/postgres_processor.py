@@ -132,21 +132,15 @@ def init_db(
     print(f"✅ Database ready")
     return conn
 
+# TODO - make this function idempotent by looking in db first so that there is no double entry.
 def scan_folder(  conn = None, file_path : str = "data" ) -> None:
     print( f"starting scan file_path ={file_path}, conn {conn}")
-    for root, dirs, files in os.walk(file_path):        
-        #print( f"root = {root} len(dirs ) {len(dirs)} len(files) {len(files)}")
+    for root, dirs, files in os.walk(file_path):                
         cur = conn.cursor()
         for filename in files:
-            
-            
             if filename.endswith(".pdf") and not filename.startswith("."):
                 try:
-                    
                     path = os.path.join(root, filename)
-                    # with open(path, "rb") as f:
-                    #     pdf_bytes = f.read()
-
                     cur.execute("insert into documents ( filename, file_size ) values ( %s,%s )  on conflict (filename) do nothing", (path, 0,  ) )
                     conn.commit()
                 except Exception as e:
@@ -388,9 +382,8 @@ def embed_single_page( page_id, conn ):
     if len( rows ) > 0:
         model = getLLModel()
 
-    for  (text,) in rows:
+    for (text,) in rows:
         vec = model.encode( text, normalize_embeddings=True )
-        #print( f"embed single page {page_id} text {text} of length {len(text)} vec is {vec.shape}" )
         cur.execute( "update pages set embedding = %s where id = %s ", ( vec.astype( np.float32), page_id ))
     mark_done(conn, page_id, 'embed')
     conn.commit()            
