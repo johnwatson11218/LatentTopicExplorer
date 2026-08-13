@@ -52,11 +52,11 @@ def topic( id ):
 
 def get_topic_data( conn, id ):
     cur = conn.cursor()
-    cur.execute( """select d.id, d.filename from document_categories dc, documents d 
-                    where dc.document_id = d.id and dc.category_id = %s""", ( id , ))
+    cur.execute( """select d.id, d.filename, c.label, c.id from document_categories dc, documents d , categories c
+                    where c.id = dc.category_id and dc.document_id = d.id and dc.category_id = %s""", ( id , ))
     rows = cur.fetchall()
     cur.close()
-    return [ f"<a href='{url_for( 'document', id=r[0])}'>{r[1]}</a>" for r in rows ]   
+    return [ ( f"<a href='{url_for( 'document', id=r[0])}'>{r[1]}</a>", r[2], r[3] )  for r in rows ]   
  
 def get_document_data( conn , id ):
     cur = conn.cursor()

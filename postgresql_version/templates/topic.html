@@ -36,11 +36,12 @@
     <nav><a href="/">/Home</a> </nav>
 
     <main class="container">
+        <p>Topic - {{ topic_data[0][1] }}</p>
         <div id="chartDiv"></div>
 
         <ul>
             {% for td in topic_data %}
-                <li>{{ td | safe }}</li>
+                <li>{{ td[0] | safe }}</li>
             {% endfor %}
         </ul>
 
