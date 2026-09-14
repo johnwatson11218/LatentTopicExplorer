@@ -64,26 +64,26 @@ wheels = [
 
 [[package]]
 name = "cuda-bindings"
-version = "13.3.1"
+version = "13.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cuda-pathfinder" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cc/6e/2394f8163360f8391f8f1b7e72d300a82724edb81a7b7084c799fbd4c91f/cuda_bindings-13.3.1-cp313-cp313-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:9efb21c1ee64981e184b9e0ba5eb3179e5ba3d4b51665a6cb52b8ef3d01a7cbf", size = 5920504, upload-time = "2026-05-29T23:11:56.883Z" },
-    { url = "https://files.pythonhosted.org/packages/34/c2/ef9b6a63f7dc432712a462c816662e662e00d38caa9b861c8c2588195d03/cuda_bindings-13.3.1-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:2732904099e0a4d4db774a5fc6d91ee95fae065b4d2ecabb4968c5fe2406c9d7", size = 6476660, upload-time = "2026-05-29T23:11:59.188Z" },
-    { url = "https://files.pythonhosted.org/packages/b1/81/bff68ce829999c1e4209c761bbf903b1c06ec570416ddb25020864ad5907/cuda_bindings-13.3.1-cp314-cp314-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:1ab2f74ed65bfef4163ba07a8db16f1085e0729291db12a2423aff84ee8278b8", size = 6013639, upload-time = "2026-05-29T23:12:03.509Z" },
-    { url = "https://files.pythonhosted.org/packages/d4/e0/c8a1f0c8f9ffdea4f5fe6dbab89b326cef4d85caf489dad39e209da89416/cuda_bindings-13.3.1-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:efd4c814d311ec08c981f6dded1dbe7d4b371067ee4f6c14cccec4bde9590f80", size = 6534419, upload-time = "2026-05-29T23:12:05.633Z" },
-    { url = "https://files.pythonhosted.org/packages/52/b8/83b1f563925b290f2d11a01a77a84013ba56052fe3653a5bef3ccfbb43d6/cuda_bindings-13.3.1-cp314-cp314t-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:c3c772dfff49681541d59630c90f858e173ac926b9c593a2b7123f2a1043cc76", size = 5809771, upload-time = "2026-05-29T23:12:10.422Z" },
-    { url = "https://files.pythonhosted.org/packages/12/20/e79b4bfe98f075195afb6343d41c498f9dbd2d161d7021d4d28bceb83581/cuda_bindings-13.3.1-cp314-cp314t-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:36febb7c1079d68a981dbbd8d5a67235b399802b82075c9388624719607e52b9", size = 6358584, upload-time = "2026-05-29T23:12:12.767Z" },
+    { url = "https://files.pythonhosted.org/packages/38/cf/165b4d449f94956c2a60930cf5dfeb27132ead60a7e7f2c37819df1cba07/cuda_bindings-13.4.1-cp313-cp313-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:b601c0cbf0dffb648f68e56a60b320738a20210293f33896a1964a6438cc65f1", size = 6313772, upload-time = "2026-09-10T01:17:03.969Z" },
+    { url = "https://files.pythonhosted.org/packages/d9/f9/cf021d1560541caa1f35f3e7e311d2678dbacb4fa6a4573b63470fe1ae00/cuda_bindings-13.4.1-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:0e2c357698588b06ebd65811ee2013b6650dd0a10d16d899924aabad0d606d76", size = 6924300, upload-time = "2026-09-10T01:17:06.23Z" },
+    { url = "https://files.pythonhosted.org/packages/58/17/74346b49114779920929ec0ea1361f0a0357262d6020cfdd017f670da638/cuda_bindings-13.4.1-cp314-cp314-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:d7df2dddb81feb15787e8c4a13b7aa3f4c23eabeec7746037e94dbbed065fc6c", size = 6406821, upload-time = "2026-09-10T01:17:12.344Z" },
+    { url = "https://files.pythonhosted.org/packages/f6/77/2f9a38be7399a34e3703b6ce1be60bb2c56611d324750f8d544ff90b0473/cuda_bindings-13.4.1-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:62df23df11074e9833bf348bbcf0b8eec2fcbded4f305c6fbaa3ed067433e97d", size = 6972525, upload-time = "2026-09-10T01:17:15.098Z" },
+    { url = "https://files.pythonhosted.org/packages/7d/de/41197aebf91f6c5f82b35e06e3b4bbe08edddb335c4d6e53c1f1fe542e0f/cuda_bindings-13.4.1-cp314-cp314t-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:0947a6c491a622b076e9afcbc0444eefd9cbe001630558bbcba8d0a90dab7fe7", size = 6243282, upload-time = "2026-09-10T01:17:21.158Z" },
+    { url = "https://files.pythonhosted.org/packages/be/d6/1b697092f53cfd4d721fbbe13e7d66dc72a9d508156af9be4c86607e4373/cuda_bindings-13.4.1-cp314-cp314t-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:51e730e80d997b6037566033a79aae3995e1981654054536f512e5c091679c70", size = 6803245, upload-time = "2026-09-10T01:17:23.309Z" },
 ]
 
 [[package]]
 name = "cuda-pathfinder"
-version = "1.6.0"
+version = "1.8.1"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fc/b4/d088047afe39827556df21118cac9ffd20cc3f968c99a7681494d1eb333c/cuda_pathfinder-1.6.0-py3-none-any.whl", hash = "sha256:1503af579d8379c24bdd65528379bc57039b0455be9f5f9686cf8e473a1fce51", size = 54591, upload-time = "2026-07-21T15:03:56.224Z" },
+    { url = "https://files.pythonhosted.org/packages/9d/e6/22df83f82f9bc26cb1c42265cf14d34d4908dba2a0f261bd7b28244acb00/cuda_pathfinder-1.8.1-py3-none-any.whl", hash = "sha256:ae0137ff9e56ea97499bcbf54f5f2778ec25f3266715ac86da192a795af982a8", size = 62552, upload-time = "2026-09-02T16:55:28.64Z" },
 ]
 
 [[package]]
@@ -707,11 +707,9 @@ dependencies = [
     { name = "flask" },
     { name = "fsspec" },
     { name = "h11" },
-    { name = "hdbscan" },
     { name = "hf-xet" },
     { name = "httpcore" },
     { name = "httpx" },
-    { name = "huggingface-hub" },
     { name = "idna" },
     { name = "itsdangerous" },
     { name = "jinja2" },
@@ -723,7 +721,6 @@ dependencies = [
     { name = "mpmath" },
     { name = "narwhals" },
     { name = "networkx" },
-    { name = "nltk" },
     { name = "numba" },
     { name = "numpy" },
     { name = "packaging" },
@@ -736,22 +733,29 @@ dependencies = [
     { name = "regex" },
     { name = "rich" },
     { name = "safetensors" },
-    { name = "scikit-learn" },
-    { name = "scipy" },
-    { name = "sentence-transformers" },
     { name = "setuptools" },
     { name = "shellingham" },
     { name = "sympy" },
     { name = "threadpoolctl" },
     { name = "tokenizers" },
-    { name = "torch" },
     { name = "tqdm" },
-    { name = "transformers" },
     { name = "typer" },
     { name = "typing-extensions" },
+    { name = "werkzeug" },
+]
+
+[package.optional-dependencies]
+ml = [
+    { name = "hdbscan" },
+    { name = "huggingface-hub" },
+    { name = "nltk" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+    { name = "sentence-transformers" },
+    { name = "torch" },
+    { name = "transformers" },
     { name = "umap-learn" },
     { name = "uv" },
-    { name = "werkzeug" },
 ]
 
 [package.metadata]
@@ -766,11 +770,11 @@ requires-dist = [
     { name = "flask", specifier = "==3.1.3" },
     { name = "fsspec", specifier = "==2026.6.0" },
     { name = "h11", specifier = "==0.16.0" },
-    { name = "hdbscan", specifier = "==0.8.44" },
+    { name = "hdbscan", marker = "extra == 'ml'", specifier = "==0.8.44" },
     { name = "hf-xet", specifier = "==1.5.1" },
     { name = "httpcore", specifier = "==1.0.9" },
     { name = "httpx", specifier = "==0.28.1" },
-    { name = "huggingface-hub", specifier = "==1.21.0" },
+    { name = "huggingface-hub", marker = "extra == 'ml'", specifier = "==1.21.0" },
     { name = "idna", specifier = "==3.18" },
     { name = "itsdangerous", specifier = "==2.2.0" },
     { name = "jinja2", specifier = "==3.1.6" },
@@ -782,7 +786,7 @@ requires-dist = [
     { name = "mpmath", specifier = "==1.3.0" },
     { name = "narwhals", specifier = "==2.22.1" },
     { name = "networkx", specifier = "==3.6.1" },
-    { name = "nltk", specifier = "==3.9.4" },
+    { name = "nltk", marker = "extra == 'ml'", specifier = "==3.9.4" },
     { name = "numba", specifier = "==0.65.1" },
     { name = "numpy", specifier = "==2.4.6" },
     { name = "packaging", specifier = "==26.2" },
@@ -795,23 +799,24 @@ requires-dist = [
     { name = "regex", specifier = "==2026.5.9" },
     { name = "rich", specifier = "==15.0.0" },
     { name = "safetensors", specifier = "==0.8.0" },
-    { name = "scikit-learn", specifier = "==1.9.0" },
-    { name = "scipy", specifier = "==1.18.0" },
-    { name = "sentence-transformers", specifier = "==5.6.0" },
+    { name = "scikit-learn", marker = "extra == 'ml'", specifier = "==1.9.0" },
+    { name = "scipy", marker = "extra == 'ml'", specifier = "==1.18.0" },
+    { name = "sentence-transformers", marker = "extra == 'ml'", specifier = "==5.6.0" },
     { name = "setuptools", specifier = "==81.0.0" },
     { name = "shellingham", specifier = "==1.5.4" },
     { name = "sympy", specifier = "==1.14.0" },
     { name = "threadpoolctl", specifier = "==3.6.0" },
     { name = "tokenizers", specifier = "==0.22.2" },
-    { name = "torch", specifier = "==2.12.1" },
+    { name = "torch", marker = "extra == 'ml'", specifier = "==2.12.1" },
     { name = "tqdm", specifier = "==4.68.3" },
-    { name = "transformers", specifier = "==5.12.1" },
+    { name = "transformers", marker = "extra == 'ml'", specifier = "==5.12.1" },
     { name = "typer", specifier = "==0.25.1" },
     { name = "typing-extensions", specifier = "==4.15.0" },
-    { name = "umap-learn", specifier = "==0.5.12" },
-    { name = "uv", specifier = "==0.12.1" },
+    { name = "umap-learn", marker = "extra == 'ml'", specifier = "==0.5.12" },
+    { name = "uv", marker = "extra == 'ml'", specifier = "==0.12.1" },
     { name = "werkzeug", specifier = "==3.1.8" },
 ]
+provides-extras = ["ml"]
 
 [[package]]
 name = "psycopg2-binary"
