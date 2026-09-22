@@ -1,0 +1,7 @@
+[Unit]
+Description=Run script when contents of folder are updated
+
+[Service]
+type=oneshot
+# ExecStart=/home/pi/.local/bin/uv run --project /home/pi/projects/postgresql_version notify_new_pdf.py /srv/doc-import
+ExecStart=/usr/bin/uv run --project /mnt/usbstick/LatentTopicExplorer/postgresql_version/ /mnt/usbstick/LatentTopicExplorer/postgresql_version/doc_import.py
