@@ -8,5 +8,10 @@ to install
 3. run "sudo systemctl start doc-import-notify.path"
 4. run " journalctl -u doc-import-notify"
 
+
 Try adding a file or two to the hard coded folder and you should see the python scripts output using the journalctl command above. 
+
+
+5. run "sudo systemctl enable --now  doc-import-notify" to install so that it starts upon boot. 
+
 
