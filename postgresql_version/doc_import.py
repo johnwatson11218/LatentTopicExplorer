@@ -156,3 +156,10 @@ def clip_to_byte_limit(s, byte_limit=1048575):
     if len(s_bytes) <= byte_limit:
         return s
     return s_bytes[:byte_limit].decode('utf-8', errors='ignore')
+
+if __name__ == "__main__":
+    print( "running" )
+    init_db()
+    conn = get_db_connection()
+    scan_folder( conn, "/mnt/usbstick/doc_import/" ) 
+    conn.close()
