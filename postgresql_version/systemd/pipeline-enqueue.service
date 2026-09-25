@@ -3,4 +3,5 @@ Description=Enqueue pending pipeline work
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/psql -h localhost -U postgres -d second_brain -c "CALL run_enqueue_pass();"
+User=postgres
+ExecStart=/usr/bin/psql -d second_brain -c "CALL run_enqueue_pass();"
