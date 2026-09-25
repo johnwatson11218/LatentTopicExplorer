@@ -1,0 +1,10 @@
+[Unit]
+Description=Run pipeline enqueue pass periodically
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=2min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

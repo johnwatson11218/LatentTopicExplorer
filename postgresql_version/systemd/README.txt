@@ -5,7 +5,7 @@ to install
 
 1. copy the files to /etc/systemd/system
 2. run  "sudo systemctl daemon-reload"
-3. run "sudo systemctl start doc-import-notify.path"
+3. run "sudo systemctl start doc-import-notify.path" - here you never start or enable the service just the trigger ( which will then instantiate the svc on demand )
 4. run " journalctl -u doc-import-notify"
 
 

@@ -7,12 +7,6 @@ from pypdf import PdfReader
 
 import re
 
-# from nltk.stem import PorterStemmer
-# from nltk.corpus import stopwords
-# from collections import defaultdict
-# from functools import lru_cache
-# from sentence_transformers import SentenceTransformer
-
 def get_db_connection( 
     host: str = 'rp',
     port: int = 5432,
