@@ -108,15 +108,19 @@ def init_db(
                         status          TEXT NOT NULL DEFAULT 'pending',  -- 'pending', 'processing', 'done', 'error'
                         error_msg       TEXT,
                         created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        UNIQUE (page_id, step)                 -- idempotent: can't enqueue same page+step twice
+                        updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP --,
+                        --UNIQUE (page_id, step)                 -- idempotent: can't enqueue same page+step twice, this is messing up things as step 1. there is no page_id yet. 
                     )
                 """)
     
     cur.execute( """
                     CREATE INDEX if not exists idx_queue_pending ON pipeline_queue (step, status) 
-                    WHERE status = 'pending'
+                    WHERE status = 'pending';
                 """)
+    # -- Document-level work (page_id is NULL)
+    cur.execute( "CREATE UNIQUE INDEX uq_work_queue_doc_level ON pipeline_queue (document_id, step) WHERE page_id IS NULL;" )
+    # -- Page-level work (page_id is present)
+    cur.execute( "CREATE UNIQUE INDEX uq_work_queue_page_level ON pipeline_queue (document_id, page_id, step) WHERE page_id IS NOT NULL;" )
     
     conn.commit()
     cur.close()
@@ -155,5 +159,5 @@ if __name__ == "__main__":
     print( "running" )
     init_db()
     conn = get_db_connection()
-    scan_folder( conn, "/mnt/usbstick/doc_import/" ) 
+    scan_folder( conn, "c://Users/john/Desktop/books/" ) 
     conn.close()

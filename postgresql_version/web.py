@@ -12,7 +12,7 @@ app = Flask( __name__ )
 def get_db_connection( 
     host: str = "rp",
     port: int = 5432,
-    dbname: str = "second_brain",
+    dbname: str = "second_brain_9_18",
     user: str = "postgres",
     password: str = "test_case",
                    
