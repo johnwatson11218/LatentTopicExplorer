@@ -118,9 +118,9 @@ def init_db(
                     WHERE status = 'pending';
                 """)
     # -- Document-level work (page_id is NULL)
-    cur.execute( "CREATE UNIQUE INDEX uq_work_queue_doc_level ON pipeline_queue (document_id, step) WHERE page_id IS NULL;" )
+    cur.execute( "CREATE UNIQUE INDEX if not exists uq_work_queue_doc_level ON pipeline_queue (document_id, step) WHERE page_id IS NULL;" )
     # -- Page-level work (page_id is present)
-    cur.execute( "CREATE UNIQUE INDEX uq_work_queue_page_level ON pipeline_queue (document_id, page_id, step) WHERE page_id IS NOT NULL;" )
+    cur.execute( "CREATE UNIQUE INDEX if not exists uq_work_queue_page_level ON pipeline_queue (document_id, page_id, step) WHERE page_id IS NOT NULL;" )
     
     conn.commit()
     cur.close()
