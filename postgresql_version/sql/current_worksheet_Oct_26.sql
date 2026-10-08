@@ -95,14 +95,20 @@ alter table pages add column if not exists  page_size int generated always as (l
             alter table documents add column if not exists logically_deleted bool default false;
 
 
-select * from document_terms;
+select * from document_terms; -- id, document_id, term_id, tf, raw_count, page_count
+
 
 			
 
 
+select count(* ) from terms;
+SELECT term, id FROM terms limit 10;
 
 
+select count( *  ) from page_terms;
 
-
-
-						 
+select d.filename, t.term , count( p.id ) , sum ( pt.count ) from page_terms pt, pages p, documents d , terms t
+where pt.page_id= p.id and p.document_id = d.id and pt.term_id = t.id
+group by d.filename, t.term
+order by count( p.id ) desc 
+limit 100	-- page_id, term_id, count 					 

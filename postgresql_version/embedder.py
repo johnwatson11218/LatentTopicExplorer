@@ -118,9 +118,21 @@ def embed_single_page( page_id, conn ):
             
             alter table documents add column if not exists logically_deleted bool default false;
             
-            
-            
-            
+            alter table documents add column if not exists total_terms int default 0; 
+
+                update documents d set total_terms = sub.x from (
+                    select p.document_id as document_id , sum( pt.count  ) as x   from page_terms pt, pages p
+                    where p.id = pt.page_id 
+                    group by p.document_id ) sub where d.id = sub.document_id ;
+
+   
+           
+					insert into document_terms ( document_id, term_id, page_count, raw_count )  
+						 select p.document_id as doc_id, ptl.term_id as term_id, count( ptl.page_id ) as page_count, sum( ptl.count ) as raw_count
+						 from page_terms_llm ptl, pages p 
+						 where 
+						 	p.id = ptl.page_id 
+							 group by p.document_id, ptl.term_id
             
             #next ideas for python code session 
             
