@@ -65,7 +65,7 @@ delete from pipeline_queue pq where pq.status = 'processing'
 and status = 'en'
 
 
---------------------------- these steps run after the embeddings have been calculated for all the pages
+
 
 
 
@@ -95,20 +95,30 @@ alter table pages add column if not exists  page_size int generated always as (l
             alter table documents add column if not exists logically_deleted bool default false;
 
 
-select * from document_terms; -- id, document_id, term_id, tf, raw_count, page_count
-
-
 			
+alter table documents add column if not exists total_terms int default 0; 
+
+select * from page_terms limit 10 ;
 
 
-select count(* ) from terms;
-SELECT term, id FROM terms limit 10;
+update documents d set total_terms = sub.x from (
+	select p.document_id as document_id , sum( pt.count  ) as x   from page_terms_llm pt, pages p
+	where p.id = pt.page_id 
+	group by p.document_id ) sub where d.id = sub.document_id ;
 
 
-select count( *  ) from page_terms;
 
-select d.filename, t.term , count( p.id ) , sum ( pt.count ) from page_terms pt, pages p, documents d , terms t
-where pt.page_id= p.id and p.document_id = d.id and pt.term_id = t.id
-group by d.filename, t.term
-order by count( p.id ) desc 
-limit 100	-- page_id, term_id, count 					 
+select * from documents d order by d.total_terms desc 
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+select * from document_terms  -- id, document_id, term_id, tf, raw_count, page_count  .... so page_count is. 
+		 
+
+					insert into document_terms ( document_id, term_id, page_count, raw_count )  
+						 select p.document_id as doc_id, ptl.term_id as term_id, count( ptl.page_id ) as page_count, sum( ptl.count ) as raw_count
+						 from page_terms_llm ptl, pages p 
+						 where 
+						 	p.id = ptl.page_id 
+							 group by p.document_id, ptl.term_id
+							 limit 10 
+
+select  *  from document_terms;
