@@ -134,6 +134,10 @@ def embed_single_page( page_id, conn ):
 						 	p.id = ptl.page_id 
 							 group by p.document_id, ptl.term_id
             
+            Then be sure and run the rest of "uv run group_operations.py"
+            & "uv run html_colors.py" <--- this can be folded into the end of the pipeline. 
+            
+            
             #next ideas for python code session 
             
             import math
