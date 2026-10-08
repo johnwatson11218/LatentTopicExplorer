@@ -122,3 +122,4 @@ select * from document_terms  -- id, document_id, term_id, tf, raw_count, page_c
 							 limit 10 
 
 select  *  from document_terms;
+delete from document_terms;
