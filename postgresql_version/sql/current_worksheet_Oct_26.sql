@@ -123,3 +123,21 @@ select * from document_terms  -- id, document_id, term_id, tf, raw_count, page_c
 
 select  *  from document_terms;
 delete from document_terms;
+
+
+
+
+
+select  d.filename, t.term, dt.raw_count, dt.page_count , dt.tf  from document_terms dt, documents d, terms t
+where dt.document_id = d.id and dt.term_id = t.id and d.id = 800
+order by document_id, raw_count desc 
+limit 100;
+
+
+select * from pages p where p.document_id = 800 order by page_number
+
+
+
+select * from document_coordinates
+
+update documents set logically_deleted = true where id in ( select id from documents order by size desc limit 10 ) 
