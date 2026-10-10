@@ -141,3 +141,11 @@ select * from pages p where p.document_id = 800 order by page_number
 select * from document_coordinates
 
 update documents set logically_deleted = true where id in ( select id from documents order by size desc limit 10 ) 
+
+
+
+select * from documents limit 10
+
+
+select replace ( filename , 'c://Users/john/Desktop/books/' , '' ) from documents limit 10
+update documents set filename = replace( filename, 'c://Users/john/Desktop/books/', '' )
