@@ -135,7 +135,15 @@ def embed_single_page( page_id, conn ):
 							 group by p.document_id, ptl.term_id
             
             Then be sure and run the rest of "uv run group_operations.py"
-            & "uv run html_colors.py" <--- this can be folded into the end of the pipeline. 
+            & "uv run html_color_names.py" <--- this can be folded into the end of the pipeline. 
+            
+            
+            -- next section for adding page_count to table and populating once the parse is done. 
+            alter table documents add column if not exists total_pages int default 0;
+
+
+update documents d set total_pages = sub.x from ( select p.document_id, count ( p.* ) as x from pages p group by document_id  ) sub where d.id = sub.document_id 
+
             
             
             #next ideas for python code session 
