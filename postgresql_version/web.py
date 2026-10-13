@@ -76,10 +76,10 @@ def get_document_data( conn , id ):
 
 def get_page_data( conn, document_id, page_number ):
     cur = conn.cursor()
-    cur.execute( 'select p.id, p.extracted_text from pages p where p.document_id = %s and page_number = %s ', ( document_id, page_number ))
+    cur.execute( 'select p.id, p.extracted_text, d.filename from pages p , documents d where p.document_id = d.id and  p.document_id = %s and page_number = %s ', ( document_id, page_number ))
     rows = cur.fetchall()
     cur.close()
-    return { id : text for (id,text) in rows }
+    return { id : (text,filename) for (id,text,filename) in rows }
 
 def get_documents( conn ):
     cur = conn.cursor()
