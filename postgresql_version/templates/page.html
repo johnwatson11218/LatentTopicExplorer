@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Flask App</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@latest/css/pico.min.css">
+</head>
+<html>
+
+<body>
+
+
+
+    <nav><a href="/">/Home</a> </nav>
+    <main class="container">
+        <p>document_id - {{document_id }}
+            <p>page_number - {{ page_number }} </p>
+            <p>
+                page_data - {{ page_data }} 
+            </p>
+
+            <p><a href='/page/{{document_id}}/{{ prev_page_number }}'>Previous Page</a></p>
+            <p><a href='/page/{{document_id}}/{{ next_page_number }}'>Next Page</a></p>
+    </main>
+
+</body>
+
+</html>

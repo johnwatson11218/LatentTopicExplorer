@@ -41,6 +41,15 @@ def document( id ):
     conn.close()
     return render_template( 'document.html', document_data = document_data[0] )
 
+@app.route( "/page/<document_id>/<page_number>")
+def page( document_id, page_number ):
+    conn = get_db_connection()
+    page_data = get_page_data( conn, document_id, page_number )
+    conn.close()
+    return render_template( 'page.html', document_id = document_id, page_number = page_number, page_data = page_data, prev_page_number = int(page_number) - 1, next_page_number = int(page_number) + 1 )
+
+
+
 @app.route( "/topic/<id>")
 def topic( id ):
     conn = get_db_connection()
@@ -64,6 +73,13 @@ def get_document_data( conn , id ):
     rows = cur.fetchall()    
     cur.close()
     return [ ( r[0], r[1], r[2], r[3] , r[4]) for r in rows ]
+
+def get_page_data( conn, document_id, page_number ):
+    cur = conn.cursor()
+    cur.execute( 'select p.id, p.extracted_text from pages p where p.document_id = %s and page_number = %s ', ( document_id, page_number ))
+    rows = cur.fetchall()
+    cur.close()
+    return { id : text for (id,text) in rows }
 
 def get_documents( conn ):
     cur = conn.cursor()
