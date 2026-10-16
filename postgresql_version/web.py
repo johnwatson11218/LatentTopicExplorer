@@ -92,7 +92,7 @@ def get_topics_and_documents( conn ):
     cur.execute( "select c.id , c.label , dc.color     from categories c, document_categories dc where c.id = dc.category_id group by c.id, c.label, dc.color order by 1 ")
     categories = [Category( r[0], r[1],r[2]) for r in cur.fetchall()] 
     cur.close()    
-    return { f"<a href='{url_for( 'topic', id=category.id )}'>{category.label}</a>" : 
+    return { f"<a href='{url_for( 'topic', id=category.id )}'>{category.label}</a>" : # <-- this 'key' e.g. href to topic page  maps to a list of href links to each document in the topic 
                 [ f"<a href='{url_for( 'document', id=document.id)}'>{document.filename}</a>" 
                     for document in category.get_documents( conn )    ] 
                         for category in categories }
