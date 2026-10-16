@@ -91,23 +91,13 @@ def get_topics_and_documents( conn ):
     cur = conn.cursor()
     cur.execute( "select c.id , c.label , dc.color     from categories c, document_categories dc where c.id = dc.category_id group by c.id, c.label, dc.color order by 1 ")
     categories = [Category( r[0], r[1],r[2]) for r in cur.fetchall()] 
-    cur.close()
+    cur.close()    
+    return { f"<a href='{url_for( 'topic', id=category.id )}'>{category.label}</a>" : 
+                [ f"<a href='{url_for( 'document', id=document.id)}'>{document.filename}</a>" 
+                    for document in category.get_documents( conn )    ] 
+                        for category in categories }
     
-    #[ c.get_documents( conn ) for c in categories ]
-       
-    
-    # topics_and_documents = defaultdict( list )    
-    # [ topics_and_documents[f"<a href='{url_for( 'topic', id=r[3])}'>{r[0]}</a>"].append( f"<a href='{url_for( 'document', id=r[2])}'>{r[1]}</a>" ) for r in rows ]
-    topics_and_documents  = {}
-    for category in categories:
-        key = f"<a href='{url_for( 'topic', id=category.id )}'>{category.label}</a>"
-        list_documents = []
-        for document in category.get_documents( conn ):
-            doc_link = f"<a href='{url_for( 'document', id=document.id)}'>{document.filename}</a>"
-            list_documents.append( doc_link )
-        topics_and_documents[key] = list_documents
-    
-    return topics_and_documents
+
 
 def get_document_coords( conn, topic_id = None ):
     try:
