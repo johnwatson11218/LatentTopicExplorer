@@ -53,18 +53,17 @@
     <nav> ... </nav>
     <main class="container">
         <div id="chartDiv"></div>
-
         
-            {% for k,v in topics_and_documents.items()%}
-                <details>
-                    <summary>{{ k | safe }}</summary>
-                        <ol>
-                        {% for vv in v %}
-                            <li>{{  vv | safe }}</li>
-                        {% endfor %}                            
-                    </ol> 
-                </details>
-            {% endfor%}
+        {% for category in topics_and_documents %}
+            <details>
+                <summary> <a href="{{ url_for( 'topic', id=category.id )}}">{{ category.label }}</a> </summary>
+                <ol>
+                {% for document in category.documents %}
+                    <li><a href="{{ url_for( 'document', id=document.id ) }}">{{ document.filename }}</a></li>
+                {% endfor %}
+                </ol>
+            </details>
+        {% endfor %}
         
     </main>
 </body>
