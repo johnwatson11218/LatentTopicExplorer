@@ -48,10 +48,6 @@ def page( document_id, page_number ):
     conn.close()
     return render_template( 'page.html', document_id = document_id, page_number = page_number, page_data = page_data, prev_page_number = int(page_number) - 1, next_page_number = int(page_number) + 1 )
 
-"""
-<p><a href="/static/books/{{ document_data[1] }}">{{ document_data[1] }}</a></p>
-"""
-
 
 @app.route( "/topic/<id>")
 def topic( id ):
