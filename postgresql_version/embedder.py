@@ -12,7 +12,7 @@ import numpy as np
 import re
 
 def get_db_connection( 
-    host: str = 'rp',
+    host: str = 'localhost',
     port: int = 5432,
     dbname: str = "second_brain",
     user: str = "postgres",
@@ -119,6 +119,11 @@ def embed_single_page( page_id, conn ):
             alter table documents add column if not exists logically_deleted bool default false;
             
             alter table documents add column if not exists total_terms int default 0; 
+-------------------------------- STOP need to run once version of the terms builder ------------------------------------------
+
+
+
+
 
                 update documents d set total_terms = sub.x from (
                     select p.document_id as document_id , sum( pt.count  ) as x   from page_terms pt, pages p

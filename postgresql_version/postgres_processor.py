@@ -17,7 +17,7 @@ import umap
 import hdbscan
 
 def get_db_connection( 
-    host: str = 'rp',
+    host: str = 'localhost',
     port: int = 5432,
     dbname: str = "second_brain",
     user: str = "postgres",
@@ -169,7 +169,7 @@ def split_pdf_file_and_extract_text( document_id, conn  ):
         cur.execute( sql , (document_id,) )
         path = cur.fetchone()[0]
     except Exception as e :
-        mark_error( conn, document_id , 'split' )
+        mark_error( conn, document_id , 'split', str(e) )
         return 
 
     with open(path, "rb") as f:
@@ -180,7 +180,7 @@ def split_pdf_file_and_extract_text( document_id, conn  ):
             reader = PdfReader( io.BytesIO( blob ))
             total_pages = len( reader.pages )
         except Exception as e:
-            mark_error( conn, document_id , 'split' )
+            mark_error( conn, document_id , 'split', str(e) )
             return
         raw_text  = "ERROR PARSING PAGE"
         for page_num in range(total_pages):           
@@ -193,7 +193,7 @@ def split_pdf_file_and_extract_text( document_id, conn  ):
                 page_sql = "insert into pages ( document_id , extracted_text , page_number ) values ( %s,%s,%s )"
                 cur.execute(page_sql , (document_id , raw_text, page_num ))
             except Exception as e :
-                mark_error( conn, document_id , 'split' )
+                mark_error( conn, document_id , 'split', str(e) )
                 return
             conn.commit()
     mark_done(conn, document_id, 'split')
@@ -639,24 +639,24 @@ init_db()
 # scan_folder( conn, "static/books/" ) 
 # conn.close()
 
-# for i in range( 5 ):
-#     conn = get_db_connection()
-#     #
-#     enqueue_splits( conn )
+for i in range( 5 ):
+    conn = get_db_connection()
+    #
+    #enqueue_splits( conn )
     
-#     enqueue_embeddings( conn )
-#     # process each batch type in order
-#     rows = claim_batch(conn, 'split', 10 )
-#     [ split_pdf_file_and_extract_text( document_id, conn ) for document_id in rows  ]
+    #enqueue_embeddings( conn )
+    # process each batch type in order
+    rows = claim_batch(conn, 'split', 100 )
+    [ split_pdf_file_and_extract_text( document_id, conn ) for document_id in rows  ]
     
-#     rows = claim_batch( conn , 'embed', 5000 )
-#     print( f"number for embed text {len( rows )}")
-#     [ embed_single_page( page_id, conn ) for page_id in rows ]
+    # rows = claim_batch( conn , 'embed', 5000 )
+    # print( f"number for embed text {len( rows )}")
+    # [ embed_single_page( page_id, conn ) for page_id in rows ]
     
-#     conn.close()
+    conn.close()
     
 print( f"done with pdf import steps ")
-done_importing = True
+done_importing = False
 
 if done_importing == True:
     conn = get_db_connection()

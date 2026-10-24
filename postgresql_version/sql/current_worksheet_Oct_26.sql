@@ -9,9 +9,9 @@ select count ( * ) from pages p where p.document_id = 1048
 select count ( * ) from pipeline_queue;
 select * from pipeline_queue;
 
-call run_enqueue_pass()
+call run_enqueue_available_work()
 
-CREATE OR REPLACE PROCEDURE run_enqueue_pass()
+CREATE OR REPLACE PROCEDURE run_enqueue_available_work()
 LANGUAGE plpgsql
 AS $$
 BEGIN

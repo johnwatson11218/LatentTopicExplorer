@@ -16,7 +16,7 @@ import psycopg2
 from psycopg2.extensions import connection as PGConnection
 
 def get_db_connection( 
-    host: str = "rp",
+    host: str = "localhost",
     port: int = 5432,
     dbname: str = "second_brain",
     user: str = "postgres",

@@ -14,7 +14,7 @@ import hdbscan
 
 
 def get_db_connection( 
-    host: str = 'rp',
+    host: str = 'localhost',
     port: int = 5432,
     dbname: str = "second_brain",
     user: str = "postgres",
@@ -251,7 +251,7 @@ if __name__ == "__main__":
 
     #populate_terms( conn )
     #populate_embeddings( conn )
-    #reduce_dimensionality_umap(conn)
-    #cluster_points( conn )
+    reduce_dimensionality_umap(conn)
+    cluster_points( conn )
     label_categories( conn )
     conn.close()
