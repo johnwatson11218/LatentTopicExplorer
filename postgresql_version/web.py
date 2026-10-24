@@ -71,7 +71,7 @@ def get_document_data( conn , id ):
     cur.execute( 'select d.id, d.filename, d.size, c.label, c.id, d.total_pages from documents d, document_categories dc, categories c where d.id = dc.document_id and dc.category_id = c.id and  d.id = %s', ( id, ))
     rows = cur.fetchall()    
     cur.close()
-    return [ ( r[0], r[1], r[2], r[3] , r[4], r[5]) for r in rows ]
+    return [ ( r[0], r[1].split( '/')[-1], r[2], r[3] , r[4], r[5]) for r in rows ]
 
 def get_page_data( conn, document_id, page_number ):
     cur = conn.cursor()
