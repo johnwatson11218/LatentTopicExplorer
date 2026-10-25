@@ -111,4 +111,4 @@ select * from document_terms;
 
 update document_terms tf set tf = sub.tf from (
 select dt_o.id, dt_o.raw_count::float8  / sub.c::float8 tf   from document_terms dt_o, ( select dt.document_id as id, sum( raw_count )  as c from document_terms dt, documents d where d.id = dt.document_id group by dt.document_id ) sub 
-where sub.id = dt_o.document_id )sub where sub.id = tf.id
+where sub.id = dt_o.document_id )sub where sub.id = tf.id --> 1 min 51 seconds
