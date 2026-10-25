@@ -120,3 +120,21 @@ update document_terms tf set tf = sub.tf
 								 	) sub 
 	where sub.id = dt_o.document_id ) sub 
 where sub.id = tf.id --> 1 min 51 seconds
+
+
+
+
+
+
+
+
+
+
+
+
+--------------------- some documents were able to cluster but there do not appear to be any pagess, Black Hat Python 2nd edition - case in point. Why? 
+-- so far I can see that only 1 page of text was parsed , there is only a small amount of text on that page, causing it to classify in a more generic python topic . 
+document_id = 1024
+select * from documents d where d.id = 1025
+
+select  p.extracted_text  from pages p where p.document_id = 1025

@@ -93,7 +93,8 @@ def split_pdf_file_and_extract_text( document_id, conn  ):
         for page_num in range(total_pages):           
             page = reader.pages[page_num]
             try:
-                raw_text = page.extract_text(extraction_mode='layout')
+                #raw_text = page.extract_text(extraction_mode='layout')
+                raw_text = page.extract_text()
                 raw_text = clean_text_for_postgres( raw_text )
                 raw_text = clip_to_byte_limit( raw_text )
                 
