@@ -87,7 +87,28 @@ select pq.step, pq.status, count( * ) from pipeline_queue pq group by pq.step, p
 							 group by p.document_id, ptl.term_id
 
 
-						            alter table documents add column if not exists total_pages int default 0;
 
-
+alter table documents add column if not exists total_pages int default 0;
 update documents d set total_pages = sub.x from ( select p.document_id, count ( p.* ) as x from pages p group by document_id  ) sub where d.id = sub.document_id 
+
+
+select * from documents d order by d.size desc limit 10
+update documents set logically_deleted = true where id in ( 829, 836 )
+
+select length( p.extracted_text ) , p.* from pages p where p.document_id = 1184 order by 1 desc 
+
+-- 402, 1184
+select * from terms t, document_terms dt where dt.document_id = 1184 and dt.term_id = t.id  order by dt.raw_count desc 
+
+
+select * from page_terms_llm
+-- there exists TOTAL_TERMS on table documents. it has the count of the terms in the doc ( not unique )
+
+select d_outer.id ,   total_terms / sub.c from ( select dt.document_id as id, sum( raw_count )  as c from document_terms dt, documents d where d.id = dt.document_id group by dt.document_id ) sub, documents d_outer where sub.id = d_outer.id and total_terms / sub.c <> 1 ; --> returns null set, great.
+
+-- at this point I can see that the tf :: real on table document_terms is null , so there are missing steps that most likely impact the quality of generated labels using class level tf-idf. 
+select * from document_terms;
+
+update document_terms tf set tf = sub.tf from (
+select dt_o.id, dt_o.raw_count::float8  / sub.c::float8 tf   from document_terms dt_o, ( select dt.document_id as id, sum( raw_count )  as c from document_terms dt, documents d where d.id = dt.document_id group by dt.document_id ) sub 
+where sub.id = dt_o.document_id )sub where sub.id = tf.id
