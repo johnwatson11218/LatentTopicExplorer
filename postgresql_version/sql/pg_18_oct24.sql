@@ -109,6 +109,14 @@ select d_outer.id ,   total_terms / sub.c from ( select dt.document_id as id, su
 -- at this point I can see that the tf :: real on table document_terms is null , so there are missing steps that most likely impact the quality of generated labels using class level tf-idf. 
 select * from document_terms;
 
-update document_terms tf set tf = sub.tf from (
-select dt_o.id, dt_o.raw_count::float8  / sub.c::float8 tf   from document_terms dt_o, ( select dt.document_id as id, sum( raw_count )  as c from document_terms dt, documents d where d.id = dt.document_id group by dt.document_id ) sub 
-where sub.id = dt_o.document_id )sub where sub.id = tf.id --> 1 min 51 seconds
+update document_terms tf set tf = sub.tf 
+	from (
+		select dt_o.id, dt_o.raw_count::float8  / sub.c::float8 tf   
+			from document_terms dt_o, ( 
+				select dt.document_id as id, sum( raw_count )  as c 
+				from document_terms dt, documents d 
+				where d.id = dt.document_id 
+				group by dt.document_id 
+								 	) sub 
+	where sub.id = dt_o.document_id ) sub 
+where sub.id = tf.id --> 1 min 51 seconds
