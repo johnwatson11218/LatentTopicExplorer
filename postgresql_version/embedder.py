@@ -126,7 +126,7 @@ def embed_single_page( page_id, conn ):
 
 
                 update documents d set total_terms = sub.x from (
-                    select p.document_id as document_id , sum( pt.count  ) as x   from page_terms pt, pages p
+                    select p.document_id as document_id , sum( pt.count  ) as x   from page_terms_llm pt, pages p
                     where p.id = pt.page_id 
                     group by p.document_id ) sub where d.id = sub.document_id ;
 

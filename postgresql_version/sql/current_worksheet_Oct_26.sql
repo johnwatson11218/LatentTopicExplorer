@@ -1,15 +1,6 @@
-select  *  from documents d 
-where d.total_terms = 0 
-order by total_terms desc 
-where d.id = 1048;
-select count ( * ) from pages p where p.document_id = 1048
+select * from documents
 
 
-
-select count ( * ) from pipeline_queue;
-select * from pipeline_queue;
-
-call run_enqueue_available_work()
 
 CREATE OR REPLACE PROCEDURE run_enqueue_available_work()
 LANGUAGE plpgsql
@@ -42,78 +33,11 @@ BEGIN
 END;
 $$;
 
+call run_enqueue_available_work()
 
-
-select count(*) from pages 
-
-
-select * from pipeline_queue pq where pq.error_msg is not null 
-
-select count( *  ) from documents d where not exists ( select 1 from pages p where p.document_id = d.id )
+select count( * ) from pages 
+select pq.step, pq.status, count( * ) from pipeline_queue pq group by pq.step, pq.status
 
 
 
-
-select length( extracted_text ), count( * ) from pages p group by length( extracted_text ) order by length( extracted_text  ) --  count( * ) desc 
-
-
-
-select count( * ) from pages p where p.embedding is   null 
-select count( * ) from documents d where d.embedding is null;
-
-select status, count( * ) from pipeline_queue pq where pq.step = 'embed' group by status
-delete from pipeline_queue pq where pq.status = 'processing'
-
-and status = 'en'
-
-
-
-
-
-
-                        update documents as d set embedding  = ps.embedding from 
-							(
-								select document_id as document_id ,   avg( embedding  ) as embedding  from pages p group by p.document_id
-							) as ps( document_id, embedding ) 
-					     where id = ps.document_id;  
-
-
-
-alter table pages add column if not exists  page_size int generated always as (length( extracted_text )) stored;
-
-                        alter table documents add column if not exists size int default 0;
-
-
-						                        update documents d set size = sub.x 
-                        from ( select p.document_id, sum( length( p.extracted_text ) ) as x from pages p group by p.document_id ) sub
-                        where d.id = sub.document_id 
-
-
-
-
-						                            alter table document_categories add column if not exists color varchar;
-
-
-            alter table documents add column if not exists logically_deleted bool default false;
-
-
-			
-alter table documents add column if not exists total_terms int default 0; 
-
-
-select * from page_terms pt, pages limit 10 ;
-
-
-
-
-update documents d set total_terms = sub.x from (
-                    select p.document_id as document_id , sum( pt.count  ) as x   from page_terms pt, pages p
-                    where p.id = pt.page_id 
-                    group by p.document_id ) sub where d.id = sub.document_id ;
-
-
-
-alter table documents add column if not exists total_pages int default 0;
-
-
-update documents d set total_pages = sub.x from ( select p.document_id, count ( p.* ) as x from pages p group by document_id  ) sub where d.id = sub.document_id 
+CREATE DATABASE second_brain_10_25 TEMPLATE second_brain;

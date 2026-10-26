@@ -8,7 +8,7 @@ from pypdf import PdfReader
 import re
 
 def get_db_connection( 
-    host: str = 'rp',
+    host: str = 'localhost',
     port: int = 5432,
     dbname: str = "second_brain",
     user: str = "postgres",
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     conn = get_db_connection()
     
     
-    rows = claim_batch(conn, 'split', 500 )
+    rows = claim_batch(conn, 'split', 30 )
     [ split_pdf_file_and_extract_text( document_id, conn ) for document_id in rows  ]
 
     
