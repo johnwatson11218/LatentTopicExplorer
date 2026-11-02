@@ -21,9 +21,7 @@
             <p><a href="{{ url_for( 'document', id=document_id ) }}">Document</a></p>
             <p>page_number - {{ page_number }} </p>
 
-            <p>
-                page_data - {{ page_data }} 
-            </p>
+            <pre>{{ page_data }}</pre>
 
             <p><a href='/page/{{document_id}}/{{ prev_page_number }}'>Previous Page</a></p>
             <p><a href='/page/{{document_id}}/{{ next_page_number }}'>Next Page</a></p>

@@ -78,7 +78,8 @@ def get_page_data( conn, document_id, page_number ):
     cur.execute( 'select p.id, p.extracted_text, d.filename from pages p , documents d where p.document_id = d.id and  p.document_id = %s and page_number = %s ', ( document_id, page_number ))
     rows = cur.fetchall()
     cur.close()
-    return { id : (text,filename) for (id,text,filename) in rows }
+    #return { id : (text,filename) for (id,text,filename) in rows }
+    return [ text for ( _, text , _ ) in rows ][0]
 
 
 def get_topics_and_documents( conn ):
