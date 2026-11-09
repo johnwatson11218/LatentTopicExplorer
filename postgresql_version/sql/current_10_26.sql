@@ -148,3 +148,42 @@ select dn.document_id, d1.filename, d2.filename, dn.dist
 from doc_neighbors dn, documents d1, documents d2
 where dn.document_id = d1.id and dn.neighbor_id = d2.id 
 order by 1, 4
+
+
+
+select count( * ) from pages 
+
+
+
+
+
+SET maintenance_work_mem = '2GB';              -- or more if you have it
+SET max_parallel_maintenance_workers = 7;      -- parallel builds need pgvector 0.6+
+CREATE INDEX ON pages USING hnsw (embedding vector_cosine_ops);
+
+CREATE TABLE page_neighbors AS
+SELECT p.id, n.id AS neighbor_id, n.dist
+FROM pages p
+CROSS JOIN LATERAL (
+    SELECT q.id, q.embedding <=> p.embedding AS dist
+    FROM pages q
+    WHERE q.document_id <> p.document_id
+    ORDER BY q.embedding <=> p.embedding
+    LIMIT 5
+) n;
+
+
+
+select count(*) from page_neighbors
+
+
+
+SELECT n_neighbors, count(*) AS pages
+FROM (
+    SELECT p.id, count(n.neighbor_id) AS n_neighbors
+    FROM pages p
+    LEFT JOIN page_neighbors n USING (id)
+    GROUP BY p.id
+) t
+GROUP BY n_neighbors
+ORDER BY n_neighbors;
