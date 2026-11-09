@@ -32,7 +32,7 @@ def index():
     topics_and_documents = get_topics_and_documents( conn )
     serverData = get_document_coords( conn,  topics_and_documents )
     conn.close()
-    return render_template( 'index.html',  topics_and_documents = topics_and_documents,  serverData = serverData )
+    return render_template( 'index.html',  topics_and_documents = topics_and_documents[0:10],  serverData = serverData )
 
 @app.route( "/document/<id>")
 def document( id ):
@@ -85,7 +85,7 @@ def get_page_data( conn, document_id, page_number ):
 def get_topics_and_documents( conn ):
     cur = conn.cursor()
     cur.execute( """
-                        select c.id , c.label , dc.color     from categories c, document_categories dc where c.id = dc.category_id group by c.id, c.label, dc.color order by 1 
+                        select c.id , c.label , dc.color , count( dc.* )    from categories c, document_categories dc where c.id = dc.category_id group by c.id, c.label, dc.color order by 4 desc 
                 """)
     categories = [Category( r[0], r[1],r[2]) for r in cur.fetchall()] 
     [ c.get_documents( conn ) for c in categories ]

@@ -95,3 +95,56 @@ where sub.id = tf.id --> 1 min 51 seconds
 
 
 
+
+                        select c.id , c.label , dc.color   , count( dc.* )  from categories c, document_categories dc where c.id = dc.category_id group by c.id, c.label, dc.color order by 1 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- document embeddings
+CREATE TABLE doc_embedding AS
+SELECT document_id, l2_normalize(avg(embedding)) AS embedding   -- l2_normalize needs pgvector 0.7+
+FROM pages GROUP BY document_id;
+
+ALTER TABLE doc_embedding
+    ALTER COLUMN embedding TYPE vector(384);
+
+CREATE INDEX ON doc_embedding USING hnsw (embedding vector_cosine_ops);
+-- top 5 neighbors per document
+CREATE TABLE doc_neighbors AS
+SELECT d.document_id, n.document_id AS neighbor_id, n.dist, n.rank
+FROM doc_embedding d
+CROSS JOIN LATERAL (
+    SELECT document_id,
+           embedding <=> d.embedding AS dist,
+           row_number() OVER (ORDER BY embedding <=> d.embedding) AS rank
+    FROM doc_embedding
+    WHERE document_id <> d.document_id
+    ORDER BY embedding <=> d.embedding
+    LIMIT 5
+) n;
+
+
+
+select dn.document_id, d1.filename, d2.filename, dn.dist
+from doc_neighbors dn, documents d1, documents d2
+where dn.document_id = d1.id and dn.neighbor_id = d2.id 
+order by 1, 4
