@@ -34,6 +34,15 @@ def index():
     conn.close()
     return render_template( 'index.html',  topics_and_documents = topics_and_documents[0:10],  serverData = serverData )
 
+
+@app.route( "/topic/<id>")
+def topic( id ):
+    conn = get_db_connection()
+    topic_data = get_topic_data( conn, id )
+    serverData = get_document_coords( conn, get_topics_and_documents( conn ) ,  id  )
+    conn.close()
+    return render_template( 'topic.html', topic_data = topic_data, serverData = serverData )
+
 @app.route( "/document/<id>")
 def document( id ):
     conn = get_db_connection()
@@ -47,15 +56,6 @@ def page( document_id, page_number ):
     page_data = get_page_data( conn, document_id, page_number )
     conn.close()
     return render_template( 'page.html', document_id = document_id, page_number = page_number, page_data = page_data, prev_page_number = int(page_number) - 1, next_page_number = int(page_number) + 1 )
-
-
-@app.route( "/topic/<id>")
-def topic( id ):
-    conn = get_db_connection()
-    topic_data = get_topic_data( conn, id )
-    serverData = get_document_coords( conn, get_topics_and_documents( conn ) ,  id  )
-    conn.close()
-    return render_template( 'topic.html', topic_data = topic_data, serverData = serverData )
 
 
 def get_topic_data( conn, id ):
@@ -107,7 +107,7 @@ def get_document_coords( conn, topic_data = {} , topic_id = None ):
                     plot_data['labels'].append( document.filename )
                     plot_data['ids'].append( document.id )
                     plot_data['o_sizes'].append( max( document.size, 0 ) )
-                    plot_data['colors'].append( document.color )
+                    plot_data['colors'].append(  document.color if topic_id is None else 'Black' )
         
         plot_data['sizes'] = [ ( math.sqrt(o) / 100 )  for o in plot_data['o_sizes']]                                    
         return plot_data
@@ -150,6 +150,9 @@ class Page:
         self.inserted_at = inserted_at
         self.embedding = embedding 
         self.page_size = page_size
+        
+    def get_by_id( self, id , conn ):
+        pass
 
 
 
