@@ -54,8 +54,10 @@ def document( id ):
 def page( document_id, page_number ):
     conn = get_db_connection()
     page_data = get_page_data( conn, document_id, page_number )
+    page = Page.get_by_id( conn, page_data[0] )    
+    top_5_nn = page.get_top_5_neighbors( conn )
     conn.close()
-    return render_template( 'page.html', document_id = document_id, page_number = page_number, page_data = page_data, prev_page_number = int(page_number) - 1, next_page_number = int(page_number) + 1 )
+    return render_template( 'page.html', document_id = document_id, page_number = page_number, page_data = page_data, prev_page_number = int(page_number) - 1, next_page_number = int(page_number) + 1, top5 = top_5_nn )
 
 
 def get_topic_data( conn, id ):
@@ -78,8 +80,7 @@ def get_page_data( conn, document_id, page_number ):
     cur.execute( 'select p.id, p.extracted_text, d.filename from pages p , documents d where p.document_id = d.id and  p.document_id = %s and page_number = %s ', ( document_id, page_number ))
     rows = cur.fetchall()
     cur.close()
-    #return { id : (text,filename) for (id,text,filename) in rows }
-    return [ text for ( _, text , _ ) in rows ][0]
+    return [ (id , text ) for ( id, text , _ ) in rows ][0]
 
 
 def get_topics_and_documents( conn ):
@@ -116,6 +117,31 @@ def get_document_coords( conn, topic_data = {} , topic_id = None ):
         app.logger.info(f"General Error in get_document_coords: {e}")
         return None
 
+class Category:
+    def __init__( self, id, label, color ) :
+        self.id = id
+        self.label = label
+        self.color = color 
+        self.documents = []
+
+    def get_documents( self, conn ):
+        if self.documents == []:
+            cur = conn.cursor()
+            sql = """
+                        select d.id, d.filename, d.file_size, d.inserted_at, d.embedding, d.size, d.logically_deleted, d.total_terms, d.total_pages, dcoords.x, dcoords.y, dc.color
+                        from documents  d, document_categories dc , document_coordinates dcoords
+                        where 
+                        d.id = dc.document_id 
+                        and dc.category_id = %s 
+                        and d.id = dcoords.document_id
+            """
+            
+            cur.execute( sql , (self.id, ))
+            self.documents = [ Document ( r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[8],r[9],r[10],r[11]) for r in cur.fetchall() ]
+            cur.close()   
+        return self.documents
+
+
 class Document:
     def __init__(self, id, filename, file_size, inserted_at, embedding, size, logically_deleted, total_terms, total_pages, x, y, color ):
         self.id = id
@@ -140,6 +166,8 @@ class Document:
             cur.close()             
         return self.pages
     
+from dataclasses import dataclass
+@dataclass
 class Page:
     def __init__( self, id, document_id, content, extracted_text, page_number, inserted_at, embedding, page_size ):
         self.id = id
@@ -150,34 +178,52 @@ class Page:
         self.inserted_at = inserted_at
         self.embedding = embedding 
         self.page_size = page_size
+    
+    def __str__(self ):
+        txt = ""
+        if self.extracted_text is not None:
+            l = min( 20 ,len( self.extracted_text))
+            txt = self.extracted_text[0:l]
+        return f"{self.id} {self.document_id} {self.page_number} {txt}"
         
-    def get_by_id( self, id , conn ):
-        pass
-
-
-
-class Category:
-    def __init__( self, id, label, color ) :
-        self.id = id
-        self.label = label
-        self.color = color 
-        self.documents = []
-
-    def get_documents( self, conn ):
-        if self.documents == []:
-            cur = conn.cursor()
-            sql = """
-                        select d.id, d.filename, d.file_size, d.inserted_at, d.embedding, d.size, d.logically_deleted, d.total_terms, d.total_pages, dcoords.x, dcoords.y, dc.color
-                        from documents  d, document_categories dc , document_coordinates dcoords
-                        where 
-                        d.id = dc.document_id 
-                        and dc.category_id = %s 
-                        and d.id = dcoords.document_id
-            """
-            
-            cur.execute( sql , (self.id, ))
-            self.documents = [ Document ( r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[8],r[9],r[10],r[11]) for r in cur.fetchall() ]
-            cur.close()   
-        return self.documents
+    @classmethod
+    def get_by_id( cls, conn, id ):
+        with conn.cursor() as cur:
+            cur.execute ( "select id, document_id, content, extracted_text, page_number, inserted_at, embedding, 100 from pages p where p.id = %s", (id, ) )
+            row = cur.fetchone()
+        if row is None:
+            return None
+        return cls( *row )
     
-    
+    def get_top_5_neighbors( self, conn ):
+        with conn.cursor() as cur:
+            cur.execute ( "select neighbor_id from page_neighbors pn where pn.id = %s order by dist ", ( self.id, ))
+            rows = cur.fetchall()
+        if rows is None:
+            return []
+        return [ self.get_by_id( conn, r[0] ) for r in rows ]
+"""
+from dataclasses import dataclass
+
+@dataclass
+class Page:
+    page_id: int
+    document_id: int
+    page_number: int
+    text: str | None = None
+
+    @classmethod
+    def get(cls, conn, page_id):
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT page_id, document_id, page_number, text "
+                "FROM pages WHERE page_id = %s",
+                (page_id,),
+            )
+            row = cur.fetchone()
+        if row is None:
+            return None            # or raise LookupError(...)
+        return cls(*row)
+"""
+
+
